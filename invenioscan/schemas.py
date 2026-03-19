@@ -56,12 +56,16 @@ class IngestRequest(BaseModel):
 
 
 class PreparedMetadata(BaseModel):
+    scan_id: str
     title: str | None = None
     author: str | None = None
     isbn: str | None = None
     image_reference: str | None = None
     source_type: SourceType
     shelf: ShelfPosition
+    remote_document_pid: str | None = None
+    remote_item_pid: str | None = None
+    remote_eitem_pid: str | None = None
     identifiers: list[dict[str, str]]
     notes: list[str]
 

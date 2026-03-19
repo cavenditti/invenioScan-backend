@@ -20,6 +20,14 @@ All variables are prefixed with `INVSCAN_`.
 - `INVSCAN_BOOTSTRAP_PASSWORD`
 - `INVSCAN_INVENIO_BASE_URL`
 - `INVSCAN_INVENIO_API_TOKEN`
+- `INVSCAN_INVENIO_DEFAULT_INTERNAL_LOCATION_PID`
+- `INVSCAN_INVENIO_DEFAULT_LANGUAGE`
+- `INVSCAN_INVENIO_DEFAULT_BOOK_DOCUMENT_TYPE`
+- `INVSCAN_INVENIO_DEFAULT_IMAGE_DOCUMENT_TYPE`
+- `INVSCAN_INVENIO_DEFAULT_ITEM_MEDIUM`
+- `INVSCAN_INVENIO_DEFAULT_ITEM_STATUS`
+- `INVSCAN_INVENIO_DEFAULT_ITEM_CIRCULATION_RESTRICTION`
+- `INVSCAN_INVENIO_DEFAULT_EITEM_TYPE`
 
 ### Local run
 
@@ -37,4 +45,10 @@ uv run uvicorn invenioscan.app:app --reload
 
 ### Current status
 
-The InvenioILS adapter is still a stub that normalizes outbound metadata and includes shelf position information. Real remote persistence, queueing, and database-backed auditing are the next slice.
+The InvenioILS adapter now performs real HTTP calls against the document, item, and e-item APIs.
+
+- Every ingest creates a document.
+- ISBN ingests also create a physical item when `INVSCAN_INVENIO_DEFAULT_INTERNAL_LOCATION_PID` is configured.
+- Image-reference ingests create an e-item and store the image reference as a URL only when it is an `http` or `https` URL.
+
+The adapter synthesizes minimal required document fields when the mobile payload does not provide them yet, and it stores invscan provenance in keywords and internal notes. Binary image upload is still not implemented because the current API contract only accepts an image reference string.

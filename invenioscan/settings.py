@@ -16,6 +16,15 @@ class Settings(BaseSettings):
     bootstrap_password: str = "operator"
     invenio_base_url: str | None = None
     invenio_api_token: str | None = None
+    invenio_timeout_seconds: float = 20.0
+    invenio_default_language: str = "eng"
+    invenio_default_book_document_type: str = "BOOK"
+    invenio_default_image_document_type: str = "MULTIMEDIA"
+    invenio_default_internal_location_pid: str | None = None
+    invenio_default_item_medium: str = "NOT_SPECIFIED"
+    invenio_default_item_status: str = "CAN_CIRCULATE"
+    invenio_default_item_circulation_restriction: str = "NO_RESTRICTION"
+    invenio_default_eitem_type: str = "VIDEO"
     qr_payload_version: int = 1
     qr_box_size: int = 8
     qr_border: int = 4
