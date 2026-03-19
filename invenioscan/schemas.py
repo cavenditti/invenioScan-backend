@@ -85,3 +85,9 @@ class ShelfQRCodeRequest(BaseModel):
 
 class ShelfQRCodePayload(BaseModel):
     payload: str
+
+
+class ShelfQRCodeSheetRequest(BaseModel):
+    rows: list[str] = Field(min_length=1)
+    positions: list[int] = Field(min_length=1)
+    height: int = Field(ge=1)

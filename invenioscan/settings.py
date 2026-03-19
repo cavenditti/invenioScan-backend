@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,6 +18,8 @@ class Settings(BaseSettings):
     invenio_base_url: str | None = None
     invenio_api_token: str | None = None
     invenio_timeout_seconds: float = 20.0
+    public_base_url: str | None = None
+    upload_dir: Path = Path("uploads")
     invenio_default_language: str = "eng"
     invenio_default_book_document_type: str = "BOOK"
     invenio_default_image_document_type: str = "MULTIMEDIA"
