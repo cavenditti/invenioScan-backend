@@ -1,10 +1,30 @@
 # Python-generated files
 __pycache__/
 *.py[oc]
+.coverage
+.coverage.*
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
 build/
 dist/
 wheels/
-*.egg-info
+site/
+*.egg-info/
 
 # Virtual environments
-.venv
+.venv/
+venv/
+env/
+
+# Local Python config
+.python-version
+
+# Test and local data
+htmlcov/
+*.sqlite3
+*.db
+
+# Editor and OS noise
+.DS_Store
