@@ -1,4 +1,12 @@
-## Backend
+# Backend
+
+> I'm helping a friend moving lots of books.
+> I wanted to build a system to quickly ingest a large number of items into InvenioILS using QR codes and a mobile app.
+> Claude (and others) are helping me helping my friend. 🙂
+> This repo is the codebase for that project.
+
+This repository contains the FastAPI backend for the main InvenioScan project:
+https://github.com/cavenditti/invenioScan
 
 This backend is a FastAPI middleware layer in front of InvenioILS.
 
