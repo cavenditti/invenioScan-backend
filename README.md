@@ -1,45 +1,45 @@
 # Backend
 
 > I'm helping a friend moving lots of books.
-> I wanted to build a system to quickly ingest a large number of items into InvenioILS using QR codes and a mobile app.
+> I built a system to quickly catalog books using QR codes and a mobile app.
 > Claude (and others) are helping me helping my friend. 🙂
-> (I later decided to not use InvenioILS at all)
 > This repo is the codebase for that project.
 
 This repository contains the FastAPI backend for the main InvenioScan project:
 https://github.com/cavenditti/invenioScan
 
-This backend is a FastAPI middleware layer in front of InvenioILS.
+The backend is a standalone FastAPI application with SQLite persistence (via SQLModel), a web UI (Jinja2 + HTMX + Pico CSS), and a JSON API for the mobile app.
 
-### Current endpoints
+### API endpoints
 
-- `GET /api/v1/health`
-- `POST /api/v1/auth/login`
-- `GET /api/v1/auth/me`
-- `POST /api/v1/ingest`
-- `POST /api/v1/ingest/upload`
-- `POST /api/v1/qr/shelf`
-- `GET /api/v1/qr/shelf.png`
-- `POST /api/v1/qr/sheet`
+- `GET  /api/v1/health`
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login` (OAuth2 password flow)
+- `GET  /api/v1/auth/me`
+- `GET|POST|PUT|DELETE /api/v1/books`
+- `GET|POST|PUT|DELETE /api/v1/shelves`
+- `GET|POST|PUT|DELETE /api/v1/books/{id}/copies`, `/api/v1/copies/{id}`
+- `GET|POST /api/v1/admin/users`, `/api/v1/admin/users/{id}/approve|deny`
+- `POST /api/v1/ingest`, `/api/v1/ingest/upload`
+- `POST /api/v1/qr/shelf`, `GET /api/v1/qr/shelf.png`, `POST /api/v1/qr/sheet`
+
+### Web UI pages
+
+- `/` — Dashboard (book/shelf/copy counts, recent books)
+- `/books` — Searchable book list (HTMX live search)
+- `/books/{id}` — Book detail with copies
+- `/shelves`, `/shelves/{id}` — Shelf list and detail
+- `/admin/users` — User management (approve/deny)
+- `/login`, `/register`, `/logout`
 
 ### Environment variables
 
 All variables are prefixed with `INVSCAN_`.
 
+- `INVSCAN_DATABASE_URL` — SQLAlchemy URL (default: `sqlite+aiosqlite:///./invenioscan.db`)
 - `INVSCAN_JWT_SECRET_KEY`
-- `INVSCAN_BOOTSTRAP_USERNAME`
-- `INVSCAN_BOOTSTRAP_PASSWORD`
-- `INVSCAN_INVENIO_BASE_URL`
-- `INVSCAN_INVENIO_API_TOKEN`
-- `INVSCAN_INVENIO_DEFAULT_INTERNAL_LOCATION_PID`
-- `INVSCAN_INVENIO_DEFAULT_LANGUAGE`
-- `INVSCAN_INVENIO_DEFAULT_BOOK_DOCUMENT_TYPE`
-- `INVSCAN_INVENIO_DEFAULT_IMAGE_DOCUMENT_TYPE`
-- `INVSCAN_INVENIO_DEFAULT_ITEM_MEDIUM`
-- `INVSCAN_INVENIO_DEFAULT_ITEM_STATUS`
-- `INVSCAN_INVENIO_DEFAULT_ITEM_CIRCULATION_RESTRICTION`
-- `INVSCAN_INVENIO_DEFAULT_EITEM_TYPE`
-- `INVSCAN_PUBLIC_BASE_URL`
+- `INVSCAN_BOOTSTRAP_ADMIN_USERNAME` / `_PASSWORD` / `_EMAIL`
+- `INVSCAN_REGISTRATION_EXPIRY_DAYS` — Auto-deny pending users after N days (default: 7)
 - `INVSCAN_UPLOAD_DIR`
 
 ### Local run
@@ -56,13 +56,8 @@ Or run with Uvicorn directly:
 uv run uvicorn invenioscan.app:app --reload
 ```
 
-### Current status
+### Running tests
 
-The InvenioILS adapter now performs real HTTP calls against the document, item, and e-item APIs.
-
-- Every ingest creates a document.
-- ISBN ingests also create a physical item when `INVSCAN_INVENIO_DEFAULT_INTERNAL_LOCATION_PID` is configured.
-- Image uploads are stored by this backend under `/uploads` and then submitted to InvenioILS as public image-reference URLs.
-- The QR utility can render a printable HTML sheet of labels such as `A1-3`.
-
-The adapter synthesizes minimal required document fields when the mobile payload does not provide them yet, and it stores invscan provenance in keywords and internal notes.
+```bash
+uv run pytest tests/ -v
+```

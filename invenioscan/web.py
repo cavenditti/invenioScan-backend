@@ -63,8 +63,7 @@ async def index(
         (await session.exec(select(Book).order_by(Book.created_at.desc()).limit(10))).all()
     )
 
-    return tpl.TemplateResponse("index.html", {
-        "request": request,
+    return tpl.TemplateResponse(request, "index.html", {
         "user": user,
         "book_count": book_count,
         "shelf_count": shelf_count,
@@ -76,7 +75,7 @@ async def index(
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     tpl = _templates(request)
-    return tpl.TemplateResponse("login.html", {"request": request, "error": None})
+    return tpl.TemplateResponse(request, "login.html", {"error": None})
 
 
 @router.post("/login", response_class=HTMLResponse)
@@ -92,10 +91,11 @@ async def login_submit(
     user = result.first()
 
     if not user or not verify_password(password, user.hashed_password):
-        return tpl.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+        return tpl.TemplateResponse(request, "login.html", {"error": "Invalid credentials"})
 
     if user.status == UserStatus.PENDING:
-        expiry = user.created_at + timedelta(days=settings.registration_expiry_days)
+        created = user.created_at if user.created_at.tzinfo else user.created_at.replace(tzinfo=UTC)
+        expiry = created + timedelta(days=settings.registration_expiry_days)
         if datetime.now(UTC) > expiry:
             user.status = UserStatus.DENIED
             user.status_changed_at = datetime.now(UTC)
@@ -104,7 +104,7 @@ async def login_submit(
 
     if user.status != UserStatus.APPROVED:
         msg = "Account pending approval" if user.status == UserStatus.PENDING else "Account denied"
-        return tpl.TemplateResponse("login.html", {"request": request, "error": msg})
+        return tpl.TemplateResponse(request, "login.html", {"error": msg})
 
     token, _ = create_access_token(user.id, user.username, user.is_admin, settings)
     response = RedirectResponse("/", status_code=302)
@@ -115,7 +115,7 @@ async def login_submit(
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
     tpl = _templates(request)
-    return tpl.TemplateResponse("register.html", {"request": request, "error": None})
+    return tpl.TemplateResponse(request, "register.html", {"error": None})
 
 
 @router.post("/register", response_class=HTMLResponse)
@@ -131,13 +131,12 @@ async def register_submit(
         select(User).where((User.username == username) | (User.email == email))
     )
     if existing.first():
-        return tpl.TemplateResponse("register.html", {"request": request, "error": "Username or email already taken"})
+        return tpl.TemplateResponse(request, "register.html", {"error": "Username or email already taken"})
 
     user = User(username=username, email=email, hashed_password=hash_password(password))
     session.add(user)
     await session.commit()
-    return tpl.TemplateResponse("register.html", {
-        "request": request,
+    return tpl.TemplateResponse(request, "register.html", {
         "error": None,
         "success": "Registration submitted! An admin must approve your account before you can log in.",
     })
@@ -173,11 +172,11 @@ async def books_page(
     total = (await session.exec(select(func.count()).select_from(stmt.subquery()))).one()
     books = list((await session.exec(stmt.order_by(Book.created_at.desc()).offset((page - 1) * per_page).limit(per_page))).all())
 
-    ctx = {"request": request, "user": user, "books": books, "q": q or "", "page": page, "per_page": per_page, "total": total}
+    ctx = {"user": user, "books": books, "q": q or "", "page": page, "per_page": per_page, "total": total}
 
     if request.headers.get("HX-Request"):
-        return tpl.TemplateResponse("partials/book_rows.html", ctx)
-    return tpl.TemplateResponse("books.html", ctx)
+        return tpl.TemplateResponse(request, "partials/book_rows.html", ctx)
+    return tpl.TemplateResponse(request, "books.html", ctx)
 
 
 @router.get("/books/{book_id}", response_class=HTMLResponse)
@@ -202,8 +201,8 @@ async def book_detail_page(
         if c.shelf_id not in shelves:
             shelves[c.shelf_id] = await session.get(Shelf, c.shelf_id)
 
-    return tpl.TemplateResponse("book_detail.html", {
-        "request": request, "user": user, "book": book, "copies": copies, "shelves": shelves,
+    return tpl.TemplateResponse(request, "book_detail.html", {
+        "user": user, "book": book, "copies": copies, "shelves": shelves,
     })
 
 
@@ -228,8 +227,8 @@ async def shelves_page(
         count = (await session.exec(select(func.count(BookCopy.id)).where(BookCopy.shelf_id == s.id))).one()
         shelf_copy_counts[s.id] = count
 
-    return tpl.TemplateResponse("shelves.html", {
-        "request": request, "user": user, "shelves": shelves_list, "shelf_copy_counts": shelf_copy_counts,
+    return tpl.TemplateResponse(request, "shelves.html", {
+        "user": user, "shelves": shelves_list, "shelf_copy_counts": shelf_copy_counts,
     })
 
 
@@ -255,8 +254,8 @@ async def shelf_detail_page(
         if c.book_id not in books:
             books[c.book_id] = await session.get(Book, c.book_id)
 
-    return tpl.TemplateResponse("shelf_detail.html", {
-        "request": request, "user": user, "shelf": shelf, "copies": copies, "books": books,
+    return tpl.TemplateResponse(request, "shelf_detail.html", {
+        "user": user, "shelf": shelf, "copies": copies, "books": books,
     })
 
 
@@ -280,6 +279,6 @@ async def admin_users_page(
     stmt = stmt.order_by(User.created_at.desc())
     users = list((await session.exec(stmt)).all())
 
-    return tpl.TemplateResponse("admin_users.html", {
-        "request": request, "user": user, "users": users, "status_filter": status_filter or "",
+    return tpl.TemplateResponse(request, "admin_users.html", {
+        "user": user, "users": users, "status_filter": status_filter or "",
     })
