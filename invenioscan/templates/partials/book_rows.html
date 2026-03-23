@@ -1,0 +1,11 @@
+{% for book in books %}
+<tr>
+  <td><a href="/books/{{ book.id }}">{{ book.title }}</a></td>
+  <td>{{ book.author or "—" }}</td>
+  <td>{{ book.isbn or "—" }}</td>
+  <td>{{ book.document_type }}</td>
+  <td>{{ book.publication_year or "—" }}</td>
+</tr>
+{% else %}
+<tr><td colspan="5" style="text-align:center; color:#999;">No books found</td></tr>
+{% endfor %}

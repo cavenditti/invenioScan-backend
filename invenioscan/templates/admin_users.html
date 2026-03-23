@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}User Management — InvenioScan{% endblock %}
+{% block content %}
+<hgroup style="margin-top: 2rem;">
+  <h1>User Management</h1>
+  <p>Approve or deny registration requests</p>
+</hgroup>
+
+<div style="display: flex; gap: .5rem; margin-bottom: 1rem;">
+  <a href="/admin/users" role="button" class="{{ '' if status_filter else 'outline' }}">All</a>
+  <a href="/admin/users?status=pending" role="button" class="{{ '' if status_filter == 'pending' else 'outline' }}">Pending</a>
+  <a href="/admin/users?status=approved" role="button" class="{{ '' if status_filter == 'approved' else 'outline' }}">Approved</a>
+  <a href="/admin/users?status=denied" role="button" class="{{ '' if status_filter == 'denied' else 'outline' }}">Denied</a>
+</div>
+
+<figure>
+  <table>
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Status</th>
+        <th>Admin</th>
+        <th>Registered</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr id="user-row-{{ u.id }}">
+        <td>{{ u.username }}</td>
+        <td>{{ u.email }}</td>
+        <td>
+          <span class="badge badge-{{ u.status.value if u.status.value is defined else u.status }}">
+            {{ u.status.value if u.status.value is defined else u.status }}
+          </span>
+        </td>
+        <td>{{ "Yes" if u.is_admin else "No" }}</td>
+        <td>{{ u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else "—" }}</td>
+        <td>
+          {% if u.status.value == "pending" or u.status == "pending" %}
+          <div style="display: flex; gap: .5rem;">
+            <button
+              class="outline"
+              style="font-size:.85rem; padding:.3rem .7rem;"
+              hx-post="/api/v1/admin/users/{{ u.id }}/approve"
+              hx-headers='{"Authorization": "Bearer {{ request.cookies.get("access_token", "") }}"}'
+              hx-target="#user-row-{{ u.id }}"
+              hx-swap="outerHTML"
+              hx-on::after-request="location.reload()"
+            >✓ Approve</button>
+            <button
+              class="outline secondary"
+              style="font-size:.85rem; padding:.3rem .7rem;"
+              hx-post="/api/v1/admin/users/{{ u.id }}/deny"
+              hx-headers='{"Authorization": "Bearer {{ request.cookies.get("access_token", "") }}"}'
+              hx-target="#user-row-{{ u.id }}"
+              hx-swap="outerHTML"
+              hx-on::after-request="location.reload()"
+            >✗ Deny</button>
+          </div>
+          {% else %}
+          —
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="text-align:center; color:#999;">No users found</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</figure>
+{% endblock %}

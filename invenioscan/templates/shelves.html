@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Shelves — InvenioScan{% endblock %}
+{% block content %}
+<hgroup style="margin-top: 2rem;">
+  <h1>Shelves</h1>
+  <p>{{ shelves|length }} shelf unit{{ "s" if shelves|length != 1 else "" }} tracked</p>
+</hgroup>
+
+{% if shelves %}
+<div class="grid">
+  {% for shelf in shelves %}
+  <article>
+    <header>
+      <strong><a href="/shelves/{{ shelf.id }}">{{ shelf.shelf_id }}</a></strong>
+    </header>
+    {% if shelf.label %}<p>{{ shelf.label }}</p>{% endif %}
+    <p style="color:#666;">{{ shelf_copy_counts.get(shelf.id, 0) }} copies</p>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<p>No shelves yet. Shelves are created automatically when you scan books, or via the API.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}InvenioScan{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <style>
+    :root {
+      --pico-primary: #8b5e34;
+      --pico-primary-hover: #6d4a29;
+    }
+    body { background: #faf8f5; }
+    nav { background: #2e2418; padding: .75rem 1.5rem; }
+    nav ul { margin: 0; }
+    nav a, nav strong { color: #f4efe6 !important; text-decoration: none; }
+    nav a:hover { color: #d4c5a9 !important; }
+    .badge { display: inline-block; padding: .15em .55em; border-radius: 4px; font-size: .8em; font-weight: 600; }
+    .badge-pending { background: #fde68a; color: #92400e; }
+    .badge-approved { background: #bbf7d0; color: #166534; }
+    .badge-denied { background: #fecaca; color: #991b1b; }
+    .stat-card { text-align: center; padding: 1.5rem; }
+    .stat-card h2 { margin: 0; font-size: 2.5rem; color: var(--pico-primary); }
+    .stat-card p { margin: .25rem 0 0; color: #666; }
+    .flash-success { background: #bbf7d0; color: #166534; padding: .75rem 1rem; border-radius: 6px; margin-bottom: 1rem; }
+    .flash-error { background: #fecaca; color: #991b1b; padding: .75rem 1rem; border-radius: 6px; margin-bottom: 1rem; }
+    table { font-size: .92rem; }
+    .htmx-indicator { display: none; }
+    .htmx-request .htmx-indicator { display: inline-block; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {% block nav %}
+  <nav>
+    <ul>
+      <li><strong><a href="/">📚 InvenioScan</a></strong></li>
+    </ul>
+    {% if user %}
+    <ul>
+      <li><a href="/books">Books</a></li>
+      <li><a href="/shelves">Shelves</a></li>
+      {% if user.is_admin %}<li><a href="/admin/users">Users</a></li>{% endif %}
+      <li><a href="/logout">Logout ({{ user.username }})</a></li>
+    </ul>
+    {% endif %}
+  </nav>
+  {% endblock %}
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="container" style="text-align:center; padding:2rem 0; color:#999; font-size:.85rem;">
+    InvenioScan &mdash; Book position tracker
+  </footer>
+</body>
+</html>

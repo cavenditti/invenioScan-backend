@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Register — InvenioScan{% endblock %}
+{% block nav %}
+<nav>
+  <ul><li><strong><a href="/">📚 InvenioScan</a></strong></li></ul>
+  <ul><li><a href="/login">Sign in</a></li></ul>
+</nav>
+{% endblock %}
+{% block content %}
+<article style="max-width: 420px; margin: 3rem auto;">
+  <hgroup>
+    <h2>Create account</h2>
+    <p>An admin must approve your account before you can log in</p>
+  </hgroup>
+
+  {% if error %}
+  <div class="flash-error">{{ error }}</div>
+  {% endif %}
+  {% if success %}
+  <div class="flash-success">{{ success }}</div>
+  {% endif %}
+
+  {% if not success %}
+  <form method="post" action="/register">
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" required minlength="2" maxlength="80" autofocus>
+
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" required>
+
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" required minlength="6">
+
+    <button type="submit">Register</button>
+  </form>
+  {% endif %}
+
+  <p style="text-align:center; margin-top:1rem;">
+    Already have an account? <a href="/login">Sign in</a>
+  </p>
+</article>
+{% endblock %}

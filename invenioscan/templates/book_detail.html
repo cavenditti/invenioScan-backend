@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}{{ book.title }} — InvenioScan{% endblock %}
+{% block content %}
+<hgroup style="margin-top: 2rem;">
+  <h1>{{ book.title }}</h1>
+  <p>
+    {% if book.author %}by {{ book.author }}{% endif %}
+    {% if book.publication_year %} · {{ book.publication_year }}{% endif %}
+    · {{ book.document_type }}
+  </p>
+</hgroup>
+
+<div class="grid">
+  <div>
+    <article>
+      <header><strong>Details</strong></header>
+      <dl>
+        <dt>ISBN</dt><dd>{{ book.isbn or "—" }}</dd>
+        <dt>Language</dt><dd>{{ book.language or "—" }}</dd>
+        <dt>Notes</dt><dd>{{ book.notes or "—" }}</dd>
+        {% if book.extra %}
+        <dt>Extra metadata</dt>
+        <dd><pre style="font-size:.8rem; white-space:pre-wrap;">{{ book.extra }}</pre></dd>
+        {% endif %}
+      </dl>
+    </article>
+  </div>
+
+  {% if book.cover_image_url %}
+  <div>
+    <article>
+      <header><strong>Cover</strong></header>
+      <img src="{{ book.cover_image_url }}" alt="Cover image" style="max-width: 100%; max-height: 300px; object-fit: contain;">
+    </article>
+  </div>
+  {% endif %}
+</div>
+
+<section>
+  <hgroup>
+    <h3>Copies ({{ copies|length }})</h3>
+    <p>Physical locations of this book</p>
+  </hgroup>
+
+  {% if copies %}
+  <figure>
+    <table>
+      <thead>
+        <tr>
+          <th>Shelf</th>
+          <th>Row</th>
+          <th>Position</th>
+          <th>Height</th>
+          <th>Scan ID</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for copy in copies %}
+        <tr>
+          <td>
+            {% if shelves.get(copy.shelf_id) %}
+            <a href="/shelves/{{ copy.shelf_id }}">{{ shelves[copy.shelf_id].shelf_id }}</a>
+            {% else %}
+            #{{ copy.shelf_id }}
+            {% endif %}
+          </td>
+          <td>{{ copy.row }}</td>
+          <td>{{ copy.position }}</td>
+          <td>{{ copy.height }}</td>
+          <td style="font-size:.8rem; font-family:monospace;">{{ copy.scan_id | string | truncate(8, True, "") }}</td>
+          <td>{{ copy.notes or "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+  {% else %}
+  <p>No copies tracked yet.</p>
+  {% endif %}
+</section>
+
+<p><a href="/books">← Back to books</a></p>
+{% endblock %}

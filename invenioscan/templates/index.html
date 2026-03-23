@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — InvenioScan{% endblock %}
+{% block content %}
+<hgroup style="margin-top: 2rem;">
+  <h1>Dashboard</h1>
+  <p>Welcome back, {{ user.username }}</p>
+</hgroup>
+
+<div class="grid">
+  <article class="stat-card">
+    <h2>{{ book_count }}</h2>
+    <p>Books</p>
+  </article>
+  <article class="stat-card">
+    <h2>{{ shelf_count }}</h2>
+    <p>Shelves</p>
+  </article>
+  <article class="stat-card">
+    <h2>{{ copy_count }}</h2>
+    <p>Copies tracked</p>
+  </article>
+</div>
+
+<section>
+  <hgroup>
+    <h3>Recently added</h3>
+    <p>Last 10 books added to the catalog</p>
+  </hgroup>
+
+  {% if recent_books %}
+  <figure>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Author</th>
+          <th>ISBN</th>
+          <th>Type</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for book in recent_books %}
+        <tr>
+          <td><a href="/books/{{ book.id }}">{{ book.title }}</a></td>
+          <td>{{ book.author or "—" }}</td>
+          <td>{{ book.isbn or "—" }}</td>
+          <td>{{ book.document_type }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+  {% else %}
+  <p>No books yet. Start scanning or <a href="/books">add one manually</a>!</p>
+  {% endif %}
+</section>
+{% endblock %}

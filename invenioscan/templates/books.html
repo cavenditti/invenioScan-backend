@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Books — InvenioScan{% endblock %}
+{% block content %}
+<hgroup style="margin-top: 2rem;">
+  <h1>Books</h1>
+  <p>{{ total }} book{{ "s" if total != 1 else "" }} in catalog</p>
+</hgroup>
+
+<div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+  <input
+    type="search"
+    name="q"
+    placeholder="Search by title, author, or ISBN…"
+    value="{{ q }}"
+    hx-get="/books"
+    hx-trigger="input changed delay:300ms, search"
+    hx-target="#book-table-body"
+    hx-swap="innerHTML"
+    hx-push-url="true"
+    style="margin-bottom: 0;"
+  >
+  <span class="htmx-indicator" aria-busy="true"></span>
+</div>
+
+<figure>
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Author</th>
+        <th>ISBN</th>
+        <th>Type</th>
+        <th>Year</th>
+      </tr>
+    </thead>
+    <tbody id="book-table-body">
+      {% include "partials/book_rows.html" %}
+    </tbody>
+  </table>
+</figure>
+
+{% if total > per_page %}
+<nav style="text-align: center;">
+  {% if page > 1 %}<a href="/books?q={{ q }}&page={{ page - 1 }}" role="button" class="outline">← Previous</a>{% endif %}
+  <span style="margin: 0 1rem;">Page {{ page }} of {{ ((total - 1) // per_page) + 1 }}</span>
+  {% if page * per_page < total %}<a href="/books?q={{ q }}&page={{ page + 1 }}" role="button" class="outline">Next →</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

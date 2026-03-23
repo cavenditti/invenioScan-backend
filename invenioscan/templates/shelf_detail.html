@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Shelf {{ shelf.shelf_id }} — InvenioScan{% endblock %}
+{% block content %}
+<hgroup style="margin-top: 2rem;">
+  <h1>Shelf: {{ shelf.shelf_id }}</h1>
+  <p>
+    {% if shelf.label %}{{ shelf.label }} · {% endif %}
+    {{ copies|length }} copy{{ "ies" if copies|length != 1 else "" }}
+  </p>
+</hgroup>
+
+{% if copies %}
+<figure>
+  <table>
+    <thead>
+      <tr>
+        <th>Row</th>
+        <th>Position</th>
+        <th>Height</th>
+        <th>Book</th>
+        <th>Author</th>
+        <th>ISBN</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for copy in copies %}
+      {% set book = books.get(copy.book_id) %}
+      <tr>
+        <td>{{ copy.row }}</td>
+        <td>{{ copy.position }}</td>
+        <td>{{ copy.height }}</td>
+        <td>
+          {% if book %}<a href="/books/{{ book.id }}">{{ book.title }}</a>{% else %}—{% endif %}
+        </td>
+        <td>{{ book.author if book and book.author else "—" }}</td>
+        <td>{{ book.isbn if book and book.isbn else "—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</figure>
+{% else %}
+<p>No books on this shelf yet.</p>
+{% endif %}
+
+<p><a href="/shelves">← Back to shelves</a></p>
+{% endblock %}
