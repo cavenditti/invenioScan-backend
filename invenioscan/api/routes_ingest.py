@@ -1,26 +1,29 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, status
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from invenioscan.adapters.base import InvenioAdapter, InvenioAdapterError
-from invenioscan.dependencies import get_current_user, get_invenio_adapter
-from invenioscan.schemas import CurrentUserResponse, IngestRequest, IngestResponse, ShelfPosition, SourceType
+from invenioscan.database import get_session
+from invenioscan.dependencies import get_current_user
+from invenioscan.models import Book, BookCopy, Shelf, User
+from invenioscan.schemas import IngestRequest, IngestResponse, ShelfPosition, SourceType
 from invenioscan.settings import Settings, get_settings
 from invenioscan.uploads import persist_upload
 
 router = APIRouter(prefix="/ingest", tags=["ingest"])
 
 
-@router.post("", response_model=IngestResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post("", response_model=IngestResponse, status_code=status.HTTP_201_CREATED)
 async def ingest(
     payload: IngestRequest,
-    user: Annotated[CurrentUserResponse, Depends(get_current_user)],
-    adapter: Annotated[InvenioAdapter, Depends(get_invenio_adapter)],
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> IngestResponse:
-    return await _submit_ingest(payload, user, adapter)
+    return await _perform_ingest(payload, user, session)
 
 
-@router.post("/upload", response_model=IngestResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post("/upload", response_model=IngestResponse, status_code=status.HTTP_201_CREATED)
 async def upload_ingest(
     request: Request,
     shelf_id: Annotated[str, Form()],
@@ -30,8 +33,8 @@ async def upload_ingest(
     title: Annotated[str | None, Form()] = None,
     author: Annotated[str | None, Form()] = None,
     image: UploadFile = File(...),
-    user: Annotated[CurrentUserResponse, Depends(get_current_user)] = None,
-    adapter: Annotated[InvenioAdapter, Depends(get_invenio_adapter)] = None,
+    user: Annotated[User, Depends(get_current_user)] = None,
+    session: Annotated[AsyncSession, Depends(get_session)] = None,
     settings: Annotated[Settings, Depends(get_settings)] = None,
 ) -> IngestResponse:
     _, public_url = await persist_upload(image, settings, request)
@@ -39,19 +42,58 @@ async def upload_ingest(
         shelf=ShelfPosition(shelf_id=shelf_id, row=row, position=position, height=height),
         source_type=SourceType.IMAGE_REFERENCE,
         image_reference=public_url,
-        title=title,
+        title=title or "Untitled (image scan)",
         author=author,
     )
-    return await _submit_ingest(payload, user, adapter)
+    return await _perform_ingest(payload, user, session)
 
 
-async def _submit_ingest(
+async def _perform_ingest(
     payload: IngestRequest,
-    user: CurrentUserResponse,
-    adapter: InvenioAdapter,
+    user: User,
+    session: AsyncSession,
 ) -> IngestResponse:
-    try:
-        prepared = await adapter.submit_ingest(payload, user.username)
-    except InvenioAdapterError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
-    return IngestResponse(status="accepted", submitted_by=user.username, payload=prepared)
+    # Find or create shelf
+    result = await session.exec(select(Shelf).where(Shelf.shelf_id == payload.shelf.shelf_id))
+    shelf = result.first()
+    if not shelf:
+        shelf = Shelf(shelf_id=payload.shelf.shelf_id)
+        session.add(shelf)
+        await session.flush()
+
+    # Find existing book by ISBN or create new
+    book = None
+    if payload.isbn:
+        result = await session.exec(select(Book).where(Book.isbn == payload.isbn))
+        book = result.first()
+
+    if not book:
+        book = Book(
+            title=payload.title or payload.isbn or "Untitled",
+            author=payload.author,
+            isbn=payload.isbn,
+            cover_image_url=payload.image_reference if payload.source_type == SourceType.IMAGE_REFERENCE else None,
+            created_by_id=user.id,
+        )
+        session.add(book)
+        await session.flush()
+
+    # Create copy at shelf position
+    copy = BookCopy(
+        book_id=book.id,
+        shelf_id=shelf.id,
+        row=payload.shelf.row,
+        position=payload.shelf.position,
+        height=payload.shelf.height,
+    )
+    session.add(copy)
+    await session.commit()
+    await session.refresh(copy)
+    await session.refresh(book)
+
+    return IngestResponse(
+        status="created",
+        book_id=book.id,
+        copy_id=copy.id,
+        scan_id=str(copy.scan_id),
+    )
