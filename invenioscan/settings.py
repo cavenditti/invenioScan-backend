@@ -8,26 +8,30 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="INVSCAN_", env_file=".env", extra="ignore")
 
-    app_name: str = "InvenioScan API"
+    app_name: str = "InvenioScan"
     api_prefix: str = "/api/v1"
+
+    # Database
+    database_url: str = "sqlite+aiosqlite:///./invenioscan.db"
+
+    # JWT
     jwt_secret_key: str = Field(default="change-me", min_length=8)
     jwt_algorithm: str = "HS256"
     jwt_access_token_exp_minutes: int = 60
-    bootstrap_username: str = "operator"
-    bootstrap_password: str = "operator"
-    invenio_base_url: str | None = None
-    invenio_api_token: str | None = None
-    invenio_timeout_seconds: float = 20.0
+
+    # Bootstrap admin (auto-created on first startup)
+    bootstrap_admin_username: str = "admin"
+    bootstrap_admin_password: str = "admin"
+    bootstrap_admin_email: str = "admin@localhost"
+
+    # Registration
+    registration_expiry_days: int = 7
+
+    # Uploads
     public_base_url: str | None = None
     upload_dir: Path = Path("uploads")
-    invenio_default_language: str = "eng"
-    invenio_default_book_document_type: str = "BOOK"
-    invenio_default_image_document_type: str = "MULTIMEDIA"
-    invenio_default_internal_location_pid: str | None = None
-    invenio_default_item_medium: str = "NOT_SPECIFIED"
-    invenio_default_item_status: str = "CAN_CIRCULATE"
-    invenio_default_item_circulation_restriction: str = "NO_RESTRICTION"
-    invenio_default_eitem_type: str = "VIDEO"
+
+    # QR
     qr_payload_version: int = 1
     qr_box_size: int = 8
     qr_border: int = 4
