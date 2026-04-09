@@ -5,7 +5,7 @@
 > Claude (and others) are helping me helping my friend. 🙂
 > This repo is the codebase for that project.
 
-This repository contains the FastAPI backend for the main InvenioScan project:
+This repository contains the FastAPI backend for the main Shelfscan project:
 https://github.com/cavenditti/invenioScan
 
 The backend is a standalone FastAPI application with SQLite persistence (via SQLModel), a web UI (Jinja2 + HTMX + Pico CSS), and a JSON API for the mobile app.

@@ -70,7 +70,7 @@ def render_printable_qr_sheet(labels: list[tuple[ShelfPosition, str]], settings:
             "<head>",
             '<meta charset="utf-8">',
             '<meta name="viewport" content="width=device-width, initial-scale=1">',
-            "<title>InvenioScan QR Sheet</title>",
+            "<title>Shelfscan QR Sheet</title>",
             "<style>",
             "@page { size: A4 portrait; margin: 10mm; }",
             "body { font-family: Helvetica, Arial, sans-serif; margin: 0; color: #111; }",
