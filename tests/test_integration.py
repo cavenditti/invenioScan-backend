@@ -102,6 +102,22 @@ async def test_health(client: AsyncClient):
     assert resp.json() == {"status": "ok"}
 
 
+async def test_cors_preflight_allows_local_web_app(client: AsyncClient):
+    resp = await client.options(
+        "/api/v1/auth/login",
+        headers={
+            "Origin": "http://localhost:8081",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type,authorization",
+        },
+    )
+
+    assert resp.status_code == 200
+    assert resp.headers["access-control-allow-origin"] == "http://localhost:8081"
+    assert "authorization" in resp.headers["access-control-allow-headers"].lower()
+    assert "content-type" in resp.headers["access-control-allow-headers"].lower()
+
+
 async def test_register_and_login_flow(client: AsyncClient):
     # Register
     resp = await client.post("/api/v1/auth/register", json={

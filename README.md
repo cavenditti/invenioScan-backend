@@ -37,6 +37,7 @@ The backend is a standalone FastAPI application with SQLite persistence (via SQL
 All variables are prefixed with `INVSCAN_`.
 
 - `INVSCAN_DATABASE_URL` — SQLAlchemy URL (default: `sqlite+aiosqlite:///./invenioscan.db`)
+- `INVSCAN_CORS_ALLOWED_ORIGINS` — JSON array of allowed browser origins (default includes `http://localhost:8081` and `http://127.0.0.1:8081` for the web app)
 - `INVSCAN_JWT_SECRET_KEY`
 - `INVSCAN_BOOTSTRAP_ADMIN_USERNAME` / `_PASSWORD` / `_EMAIL`
 - `INVSCAN_REGISTRATION_EXPIRY_DAYS` — Auto-deny pending users after N days (default: 7)

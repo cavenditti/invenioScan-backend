@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     public_base_url: str | None = None
     upload_dir: Path = Path("uploads")
 
+    # Frontend development
+    cors_allowed_origins: list[str] = Field(
+        default_factory=lambda: [
+            "http://localhost:8081",
+            "http://127.0.0.1:8081",
+        ]
+    )
+
     # QR
     qr_payload_version: int = 1
     qr_box_size: int = 8
