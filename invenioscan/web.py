@@ -571,12 +571,25 @@ async def shelf_delete(
     return RedirectResponse("/shelves", status_code=302)
 
 
-@router.post("/shelves/{shelf_db_id}/qr-sheet", response_class=HTMLResponse)
-async def shelf_qr_sheet(
+@router.get("/qr", response_class=HTMLResponse)
+async def qr_page(
     request: Request,
-    shelf_db_id: int,
     settings: Annotated[Settings, Depends(get_settings)],
     session: Annotated[AsyncSession, Depends(get_session)],
+):
+    tpl = _templates(request)
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    return tpl.TemplateResponse(request, "qr.html", {"user": user})
+
+
+@router.post("/qr", response_class=HTMLResponse)
+async def qr_generate(
+    request: Request,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    shelf_id: Annotated[str, Form()],
     rows: Annotated[str, Form()],
     pos_from: Annotated[int, Form()],
     pos_to: Annotated[int, Form()],
@@ -586,15 +599,11 @@ async def shelf_qr_sheet(
     if not user:
         return RedirectResponse("/login", status_code=302)
 
-    shelf = await session.get(Shelf, shelf_db_id)
-    if not shelf:
-        return RedirectResponse("/shelves", status_code=302)
-
     labels = []
     for row in [r.strip() for r in rows.split(",") if r.strip()]:
         for pos in range(pos_from, pos_to + 1):
-            sp = ShelfPosition(shelf_id=shelf.shelf_id, row=row, position=pos, height=height)
-            text = f"{shelf.shelf_id} · {build_shelf_label(row, pos, height)}"
+            sp = ShelfPosition(shelf_id=shelf_id.strip(), row=row, position=pos, height=height)
+            text = f"{shelf_id.strip()} · {build_shelf_label(row, pos, height)}"
             labels.append((sp, text))
 
     html = render_printable_qr_sheet(labels, settings)
