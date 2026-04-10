@@ -1,49 +1,68 @@
 {% extends "base.html" %}
 {% block title %}{{ book.title }} — Shelfscan{% endblock %}
 {% block content %}
-<hgroup style="margin-top: 2rem;">
-  <h1>{{ book.title }}</h1>
-  <p>
-    {% if book.author %}by {{ book.author }}{% endif %}
-    {% if book.publication_year %} · {{ book.publication_year }}{% endif %}
-    · {{ book.document_type }}
-  </p>
-</hgroup>
+<div class="page-header">
+  <hgroup>
+    <p class="kicker">Book</p>
+    <h1 class="mt-0">{{ book.title }}</h1>
+    <p class="text-muted">
+      {% if book.author %}by {{ book.author }}{% endif %}
+      {% if book.publication_year %} · {{ book.publication_year }}{% endif %}
+      · {{ book.document_type }}
+    </p>
+  </hgroup>
+  <div class="gap-row">
+    <a href="/books/{{ book.id }}/edit" class="btn-pill btn-pill-outline btn-pill-sm">Edit</a>
+    {% if user.is_admin %}
+    <form method="post" action="/books/{{ book.id }}/delete" onsubmit="return confirm('Delete this book and all its copies?')" style="margin:0;">
+      <button type="submit" class="btn-pill btn-pill-danger btn-pill-sm">Delete</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
 
 <div class="grid">
   <div>
-    <article>
-      <header><strong>Details</strong></header>
+    <div class="card">
+      <h4 style="margin-top:0;">Details</h4>
       <dl>
         <dt>ISBN</dt><dd>{{ book.isbn or "—" }}</dd>
         <dt>Language</dt><dd>{{ book.language or "—" }}</dd>
+        <dt>Document type</dt><dd>{{ book.document_type }}</dd>
+        <dt>Year</dt><dd>{{ book.publication_year or "—" }}</dd>
         <dt>Notes</dt><dd>{{ book.notes or "—" }}</dd>
-        {% if book.extra %}
-        <dt>Extra metadata</dt>
-        <dd><pre style="font-size:.8rem; white-space:pre-wrap;">{{ book.extra }}</pre></dd>
-        {% endif %}
       </dl>
-    </article>
+      {% if book.extra %}
+      <h5 class="mt-1" style="margin-bottom:.25rem;">Extra metadata</h5>
+      <dl>
+        {% for key, val in book.extra.items() %}
+        <dt>{{ key }}</dt><dd>{{ val }}</dd>
+        {% endfor %}
+      </dl>
+      {% endif %}
+    </div>
   </div>
 
   {% if book.cover_image_url %}
   <div>
-    <article>
-      <header><strong>Cover</strong></header>
-      <img src="{{ book.cover_image_url }}" alt="Cover image" style="max-width: 100%; max-height: 300px; object-fit: contain;">
-    </article>
+    <div class="card text-center">
+      <h4 style="margin-top:0;">Cover</h4>
+      <img src="{{ book.cover_image_url }}" alt="Cover image" style="max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 8px;">
+    </div>
   </div>
   {% endif %}
 </div>
 
-<section>
-  <hgroup>
-    <h3>Copies ({{ copies|length }})</h3>
-    <p>Physical locations of this book</p>
-  </hgroup>
+<section class="mt-2">
+  <div class="page-header" style="margin-top:0;">
+    <hgroup>
+      <h3>Copies ({{ copies|length }})</h3>
+      <p class="text-muted">Physical locations of this book</p>
+    </hgroup>
+  </div>
 
   {% if copies %}
-  <figure>
+  <div class="card" style="overflow-x: auto;">
     <table>
       <thead>
         <tr>
@@ -53,6 +72,7 @@
           <th>Height</th>
           <th>Scan ID</th>
           <th>Notes</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -70,15 +90,57 @@
           <td>{{ copy.height }}</td>
           <td style="font-size:.8rem; font-family:monospace;">{{ copy.scan_id | string | truncate(8, True, "") }}</td>
           <td>{{ copy.notes or "—" }}</td>
+          <td>
+            <form method="post" action="/copies/{{ copy.id }}/delete" onsubmit="return confirm('Remove this copy?')" style="margin:0;">
+              <button type="submit" class="btn-pill btn-pill-danger btn-pill-sm" style="padding:.2rem .7rem; font-size:.75rem;">✕</button>
+            </form>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-  </figure>
+  </div>
   {% else %}
-  <p>No copies tracked yet.</p>
+  <p class="text-muted">No copies tracked yet.</p>
   {% endif %}
+
+  <!-- Add copy form -->
+  <details class="mt-1">
+    <summary role="button" class="outline">Add a copy</summary>
+    <div class="card mt-1">
+      <form method="post" action="/books/{{ book.id }}/copies">
+        <div class="grid">
+          <label>
+            Shelf
+            <select name="shelf_id" required>
+              <option value="">Select shelf…</option>
+              {% for s in all_shelves %}
+              <option value="{{ s.id }}">{{ s.shelf_id }}{% if s.label %} — {{ s.label }}{% endif %}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>
+            Row
+            <input type="text" name="row" placeholder="A" required maxlength="10">
+          </label>
+          <label>
+            Position
+            <input type="number" name="position" value="1" min="1" required>
+          </label>
+          <label>
+            Height (cm)
+            <input type="number" name="height" value="30" min="1" required>
+          </label>
+        </div>
+        <label>
+          Notes (optional)
+          <input type="text" name="notes" placeholder="e.g. damaged spine">
+        </label>
+        <button type="submit" class="btn-pill btn-pill-primary">Add Copy</button>
+      </form>
+    </div>
+  </details>
 </section>
 
-<p><a href="/books">← Back to books</a></p>
+<p class="mt-2"><a href="/books">← Back to books</a></p>
 {% endblock %}

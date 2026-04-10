@@ -1,10 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — Shelfscan{% endblock %}
 {% block content %}
-<hgroup style="margin-top: 2rem;">
-  <h1>Dashboard</h1>
-  <p>Welcome back, {{ user.username }}</p>
-</hgroup>
+<div class="page-header">
+  <hgroup>
+    <p class="kicker">Dashboard</p>
+    <h1 class="mt-0">Welcome back, {{ user.username }}</h1>
+  </hgroup>
+</div>
 
 <div class="grid">
   <article class="stat-card">
@@ -24,11 +26,11 @@
 <section>
   <hgroup>
     <h3>Recently added</h3>
-    <p>Last 10 books added to the catalog</p>
+    <p class="text-muted">Last 10 books added to the catalog</p>
   </hgroup>
 
   {% if recent_books %}
-  <figure>
+  <div class="card" style="overflow-x: auto;">
     <table>
       <thead>
         <tr>
@@ -49,9 +51,9 @@
         {% endfor %}
       </tbody>
     </table>
-  </figure>
+  </div>
   {% else %}
-  <p>No books yet. Start scanning or <a href="/books">add one manually</a>!</p>
+  <p class="text-muted">No books yet. Start scanning or <a href="/books/new">add one manually</a>!</p>
   {% endif %}
 </section>
 {% endblock %}

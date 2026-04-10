@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit" if shelf else "Add" }} Shelf — Shelfscan{% endblock %}
+{% block content %}
+<div class="page-header">
+  <hgroup>
+    <p class="kicker">{{ "Edit" if shelf else "New" }} Shelf</p>
+    <h1 class="mt-0">{{ shelf.shelf_id if shelf else "Add a shelf" }}</h1>
+  </hgroup>
+</div>
+
+{% if error %}
+<div class="flash-error">{{ error }}</div>
+{% endif %}
+
+<div class="card" style="max-width: 600px;">
+  <form method="post">
+    <label>
+      Shelf ID <small>(required, unique identifier e.g. S001, A-B-3)</small>
+      <input type="text" name="shelf_id" value="{{ shelf.shelf_id if shelf else '' }}" required maxlength="40" {{ "readonly" if shelf else "" }}>
+    </label>
+
+    <label>
+      Label <small>(optional description)</small>
+      <input type="text" name="label" value="{{ shelf.label if shelf and shelf.label else '' }}" maxlength="200" placeholder="e.g. Main hall, left wall">
+    </label>
+
+    <div class="gap-row mt-1">
+      <button type="submit" class="btn-pill btn-pill-primary">{{ "Save Changes" if shelf else "Create Shelf" }}</button>
+      {% if shelf %}
+      <a href="/shelves/{{ shelf.id }}" class="btn-pill btn-pill-outline">Cancel</a>
+      {% else %}
+      <a href="/shelves" class="btn-pill btn-pill-outline">Cancel</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}

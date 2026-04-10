@@ -1,16 +1,25 @@
 {% extends "base.html" %}
 {% block title %}Shelf {{ shelf.shelf_id }} — Shelfscan{% endblock %}
 {% block content %}
-<hgroup style="margin-top: 2rem;">
-  <h1>Shelf: {{ shelf.shelf_id }}</h1>
-  <p>
-    {% if shelf.label %}{{ shelf.label }} · {% endif %}
-    {{ copies|length }} copy{{ "ies" if copies|length != 1 else "" }}
-  </p>
-</hgroup>
+<div class="page-header">
+  <hgroup>
+    <p class="kicker">Shelf</p>
+    <h1 class="mt-0">{{ shelf.shelf_id }}</h1>
+    <p class="text-muted">
+      {% if shelf.label %}{{ shelf.label }} · {% endif %}
+      {{ copies|length }} copy{{ "ies" if copies|length != 1 else "" }}
+    </p>
+  </hgroup>
+  <div class="gap-row">
+    <a href="/shelves/{{ shelf.id }}/edit" class="btn-pill btn-pill-outline btn-pill-sm">Edit</a>
+    <form method="post" action="/shelves/{{ shelf.id }}/delete" onsubmit="return confirm('Delete this shelf?')" style="margin:0;">
+      <button type="submit" class="btn-pill btn-pill-danger btn-pill-sm">Delete</button>
+    </form>
+  </div>
+</div>
 
 {% if copies %}
-<figure>
+<div class="card" style="overflow-x: auto;">
   <table>
     <thead>
       <tr>
@@ -38,10 +47,39 @@
       {% endfor %}
     </tbody>
   </table>
-</figure>
+</div>
 {% else %}
-<p>No books on this shelf yet.</p>
+<p class="text-muted">No books on this shelf yet.</p>
 {% endif %}
 
-<p><a href="/shelves">← Back to shelves</a></p>
+<!-- QR Sheet Generation -->
+<section class="mt-2">
+  <h3>Generate QR Sheet</h3>
+  <p class="text-muted mb-1">Create a printable sheet of QR labels for this shelf.</p>
+  <div class="card">
+    <form method="post" action="/shelves/{{ shelf.id }}/qr-sheet" target="_blank">
+      <div class="grid">
+        <label>
+          Rows (comma-separated)
+          <input type="text" name="rows" placeholder="A,B,C" required>
+        </label>
+        <label>
+          Positions (from)
+          <input type="number" name="pos_from" value="1" min="1" required>
+        </label>
+        <label>
+          Positions (to)
+          <input type="number" name="pos_to" value="10" min="1" required>
+        </label>
+        <label>
+          Height (cm)
+          <input type="number" name="height" value="30" min="1" required>
+        </label>
+      </div>
+      <button type="submit" class="btn-pill btn-pill-primary mt-1">Generate &amp; Print</button>
+    </form>
+  </div>
+</section>
+
+<p class="mt-2"><a href="/shelves">← Back to shelves</a></p>
 {% endblock %}

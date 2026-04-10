@@ -1,42 +1,45 @@
 {% extends "base.html" %}
 {% block title %}Register — Shelfscan{% endblock %}
 {% block nav %}
-<nav>
-  <ul><li><strong><a href="/">📚 Shelfscan</a></strong></li></ul>
+<nav class="top-nav">
+  <ul><li><strong class="nav-brand"><a href="/">📚 Shelfscan</a></strong></li></ul>
   <ul><li><a href="/login">Sign in</a></li></ul>
 </nav>
 {% endblock %}
 {% block content %}
-<article style="max-width: 420px; margin: 3rem auto;">
-  <hgroup>
-    <h2>Create account</h2>
-    <p>An admin must approve your account before you can log in</p>
-  </hgroup>
+<div style="max-width: 480px; margin: 3rem auto;">
+  <p class="kicker">Shelfscan</p>
+  <h1 style="margin-bottom: .25rem;">Create account</h1>
+  <p class="text-muted" style="margin-bottom: 2rem;">An admin must approve your account before you can log in.</p>
 
-  {% if error %}
-  <div class="flash-error">{{ error }}</div>
-  {% endif %}
-  {% if success %}
-  <div class="flash-success">{{ success }}</div>
-  {% endif %}
+  <div class="card">
+    <h3 style="margin-top: 0;">Register</h3>
 
-  {% if not success %}
-  <form method="post" action="/register">
-    <label for="username">Username</label>
-    <input type="text" id="username" name="username" required minlength="2" maxlength="80" autofocus>
+    {% if error %}
+    <div class="flash-error">{{ error }}</div>
+    {% endif %}
+    {% if success %}
+    <div class="flash-success">{{ success }}</div>
+    {% endif %}
 
-    <label for="email">Email</label>
-    <input type="email" id="email" name="email" required>
+    {% if not success %}
+    <form method="post" action="/register">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required minlength="2" maxlength="80" autofocus>
 
-    <label for="password">Password</label>
-    <input type="password" id="password" name="password" required minlength="6">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required>
 
-    <button type="submit">Register</button>
-  </form>
-  {% endif %}
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required minlength="6">
 
-  <p style="text-align:center; margin-top:1rem;">
-    Already have an account? <a href="/login">Sign in</a>
-  </p>
-</article>
+      <button type="submit" class="btn-pill btn-pill-primary" style="width: 100%; margin-top: .5rem;">Register</button>
+    </form>
+    {% endif %}
+
+    <p class="text-center mt-1" style="font-size: .9rem;">
+      Already have an account? <a href="/login">Sign in</a>
+    </p>
+  </div>
+</div>
 {% endblock %}

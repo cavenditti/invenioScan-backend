@@ -1,5 +1,6 @@
 """Web UI routes — serves Jinja2 templates with cookie-backed JWT auth."""
 
+import json
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
@@ -12,6 +13,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from invenioscan.auth import create_access_token, hash_password, verify_password
 from invenioscan.database import get_session
 from invenioscan.models import Book, BookCopy, Shelf, User, UserStatus
+from invenioscan.qr import build_shelf_label, build_shelf_payload, generate_qr_svg, render_printable_qr_sheet
+from invenioscan.schemas import ShelfPosition
 from invenioscan.settings import Settings, get_settings
 
 router = APIRouter(tags=["web"], include_in_schema=False)
@@ -179,6 +182,70 @@ async def books_page(
     return tpl.TemplateResponse(request, "books.html", ctx)
 
 
+@router.get("/books/new", response_class=HTMLResponse)
+async def book_create_page(
+    request: Request,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    tpl = _templates(request)
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    return tpl.TemplateResponse(request, "book_form.html", {"user": user, "book": None, "error": None})
+
+
+@router.post("/books/new", response_class=HTMLResponse)
+async def book_create_submit(
+    request: Request,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    title: Annotated[str, Form()],
+    author: Annotated[str, Form()] = "",
+    isbn: Annotated[str, Form()] = "",
+    publication_year: Annotated[str, Form()] = "",
+    document_type: Annotated[str, Form()] = "BOOK",
+    language: Annotated[str, Form()] = "",
+    cover_image_url: Annotated[str, Form()] = "",
+    notes: Annotated[str, Form()] = "",
+    extra: Annotated[str, Form()] = "",
+):
+    tpl = _templates(request)
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+
+    extra_dict = None
+    if extra.strip():
+        try:
+            extra_dict = json.loads(extra)
+            if not isinstance(extra_dict, dict):
+                raise ValueError
+        except (json.JSONDecodeError, ValueError):
+            return tpl.TemplateResponse(request, "book_form.html", {
+                "user": user, "book": None, "error": "Extra metadata must be a valid JSON object.",
+            })
+
+    pub_year = int(publication_year) if publication_year.strip() else None
+
+    book = Book(
+        title=title.strip(),
+        author=author.strip() or None,
+        isbn=isbn.strip() or None,
+        publication_year=pub_year,
+        document_type=document_type,
+        language=language.strip() or None,
+        cover_image_url=cover_image_url.strip() or None,
+        notes=notes.strip() or None,
+        extra=extra_dict,
+        created_by_id=user.id,
+    )
+    session.add(book)
+    await session.commit()
+    await session.refresh(book)
+    return RedirectResponse(f"/books/{book.id}", status_code=302)
+
+
 @router.get("/books/{book_id}", response_class=HTMLResponse)
 async def book_detail_page(
     request: Request,
@@ -201,9 +268,151 @@ async def book_detail_page(
         if c.shelf_id not in shelves:
             shelves[c.shelf_id] = await session.get(Shelf, c.shelf_id)
 
+    all_shelves = list((await session.exec(select(Shelf).order_by(Shelf.shelf_id))).all())
+
     return tpl.TemplateResponse(request, "book_detail.html", {
         "user": user, "book": book, "copies": copies, "shelves": shelves,
+        "all_shelves": all_shelves,
     })
+
+
+@router.get("/books/{book_id}/edit", response_class=HTMLResponse)
+async def book_edit_page(
+    request: Request,
+    book_id: int,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    tpl = _templates(request)
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    book = await session.get(Book, book_id)
+    if not book:
+        return RedirectResponse("/books", status_code=302)
+    return tpl.TemplateResponse(request, "book_form.html", {"user": user, "book": book, "error": None})
+
+
+@router.post("/books/{book_id}/edit", response_class=HTMLResponse)
+async def book_edit_submit(
+    request: Request,
+    book_id: int,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    title: Annotated[str, Form()],
+    author: Annotated[str, Form()] = "",
+    isbn: Annotated[str, Form()] = "",
+    publication_year: Annotated[str, Form()] = "",
+    document_type: Annotated[str, Form()] = "BOOK",
+    language: Annotated[str, Form()] = "",
+    cover_image_url: Annotated[str, Form()] = "",
+    notes: Annotated[str, Form()] = "",
+    extra: Annotated[str, Form()] = "",
+):
+    tpl = _templates(request)
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    book = await session.get(Book, book_id)
+    if not book:
+        return RedirectResponse("/books", status_code=302)
+
+    extra_dict = None
+    if extra.strip():
+        try:
+            extra_dict = json.loads(extra)
+            if not isinstance(extra_dict, dict):
+                raise ValueError
+        except (json.JSONDecodeError, ValueError):
+            return tpl.TemplateResponse(request, "book_form.html", {
+                "user": user, "book": book, "error": "Extra metadata must be a valid JSON object.",
+            })
+
+    book.title = title.strip()
+    book.author = author.strip() or None
+    book.isbn = isbn.strip() or None
+    book.publication_year = int(publication_year) if publication_year.strip() else None
+    book.document_type = document_type
+    book.language = language.strip() or None
+    book.cover_image_url = cover_image_url.strip() or None
+    book.notes = notes.strip() or None
+    book.extra = extra_dict
+    book.updated_at = datetime.now(UTC)
+
+    session.add(book)
+    await session.commit()
+    return RedirectResponse(f"/books/{book.id}", status_code=302)
+
+
+@router.post("/books/{book_id}/delete")
+async def book_delete(
+    request: Request,
+    book_id: int,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    user = await _get_web_user(request, settings, session)
+    if not user or not user.is_admin:
+        return RedirectResponse("/login", status_code=302)
+    book = await session.get(Book, book_id)
+    if book:
+        copies = list((await session.exec(select(BookCopy).where(BookCopy.book_id == book_id))).all())
+        for c in copies:
+            await session.delete(c)
+        await session.delete(book)
+        await session.commit()
+    return RedirectResponse("/books", status_code=302)
+
+
+@router.post("/books/{book_id}/copies")
+async def copy_create(
+    request: Request,
+    book_id: int,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    shelf_id: Annotated[int, Form()],
+    row: Annotated[str, Form()],
+    position: Annotated[int, Form()],
+    height: Annotated[int, Form()],
+    notes: Annotated[str, Form()] = "",
+):
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    book = await session.get(Book, book_id)
+    if not book:
+        return RedirectResponse("/books", status_code=302)
+
+    copy = BookCopy(
+        book_id=book_id,
+        shelf_id=shelf_id,
+        row=row.strip(),
+        position=position,
+        height=height,
+        notes=notes.strip() or None,
+    )
+    session.add(copy)
+    await session.commit()
+    return RedirectResponse(f"/books/{book_id}", status_code=302)
+
+
+@router.post("/copies/{copy_id}/delete")
+async def copy_delete(
+    request: Request,
+    copy_id: int,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    copy = await session.get(BookCopy, copy_id)
+    if copy:
+        book_id = copy.book_id
+        await session.delete(copy)
+        await session.commit()
+        return RedirectResponse(f"/books/{book_id}", status_code=302)
+    return RedirectResponse("/books", status_code=302)
 
 
 # ── Shelves ────────────────────────────────────
@@ -221,7 +430,6 @@ async def shelves_page(
 
     shelves_list = list((await session.exec(select(Shelf).order_by(Shelf.shelf_id))).all())
 
-    # Count copies per shelf
     shelf_copy_counts = {}
     for s in shelves_list:
         count = (await session.exec(select(func.count(BookCopy.id)).where(BookCopy.shelf_id == s.id))).one()
@@ -230,6 +438,45 @@ async def shelves_page(
     return tpl.TemplateResponse(request, "shelves.html", {
         "user": user, "shelves": shelves_list, "shelf_copy_counts": shelf_copy_counts,
     })
+
+
+@router.get("/shelves/new", response_class=HTMLResponse)
+async def shelf_create_page(
+    request: Request,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    tpl = _templates(request)
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    return tpl.TemplateResponse(request, "shelf_form.html", {"user": user, "shelf": None, "error": None})
+
+
+@router.post("/shelves/new", response_class=HTMLResponse)
+async def shelf_create_submit(
+    request: Request,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    shelf_id: Annotated[str, Form()],
+    label: Annotated[str, Form()] = "",
+):
+    tpl = _templates(request)
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+
+    existing = (await session.exec(select(Shelf).where(Shelf.shelf_id == shelf_id.strip()))).first()
+    if existing:
+        return tpl.TemplateResponse(request, "shelf_form.html", {
+            "user": user, "shelf": None, "error": f"A shelf with ID '{shelf_id.strip()}' already exists.",
+        })
+
+    shelf = Shelf(shelf_id=shelf_id.strip(), label=label.strip() or None)
+    session.add(shelf)
+    await session.commit()
+    await session.refresh(shelf)
+    return RedirectResponse(f"/shelves/{shelf.id}", status_code=302)
 
 
 @router.get("/shelves/{shelf_db_id}", response_class=HTMLResponse)
@@ -259,6 +506,101 @@ async def shelf_detail_page(
     })
 
 
+@router.get("/shelves/{shelf_db_id}/edit", response_class=HTMLResponse)
+async def shelf_edit_page(
+    request: Request,
+    shelf_db_id: int,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    tpl = _templates(request)
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    shelf = await session.get(Shelf, shelf_db_id)
+    if not shelf:
+        return RedirectResponse("/shelves", status_code=302)
+    return tpl.TemplateResponse(request, "shelf_form.html", {"user": user, "shelf": shelf, "error": None})
+
+
+@router.post("/shelves/{shelf_db_id}/edit", response_class=HTMLResponse)
+async def shelf_edit_submit(
+    request: Request,
+    shelf_db_id: int,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    shelf_id: Annotated[str, Form()],
+    label: Annotated[str, Form()] = "",
+):
+    tpl = _templates(request)
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    shelf = await session.get(Shelf, shelf_db_id)
+    if not shelf:
+        return RedirectResponse("/shelves", status_code=302)
+
+    shelf.label = label.strip() or None
+    shelf.updated_at = datetime.now(UTC)
+    session.add(shelf)
+    await session.commit()
+    return RedirectResponse(f"/shelves/{shelf.id}", status_code=302)
+
+
+@router.post("/shelves/{shelf_db_id}/delete")
+async def shelf_delete(
+    request: Request,
+    shelf_db_id: int,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+
+    shelf = await session.get(Shelf, shelf_db_id)
+    if not shelf:
+        return RedirectResponse("/shelves", status_code=302)
+
+    copy_count = (await session.exec(select(func.count(BookCopy.id)).where(BookCopy.shelf_id == shelf_db_id))).one()
+    if copy_count > 0:
+        return RedirectResponse(f"/shelves/{shelf_db_id}?error=Cannot+delete+shelf+with+copies", status_code=302)
+
+    await session.delete(shelf)
+    await session.commit()
+    return RedirectResponse("/shelves", status_code=302)
+
+
+@router.post("/shelves/{shelf_db_id}/qr-sheet", response_class=HTMLResponse)
+async def shelf_qr_sheet(
+    request: Request,
+    shelf_db_id: int,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    rows: Annotated[str, Form()],
+    pos_from: Annotated[int, Form()],
+    pos_to: Annotated[int, Form()],
+    height: Annotated[int, Form()],
+):
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+
+    shelf = await session.get(Shelf, shelf_db_id)
+    if not shelf:
+        return RedirectResponse("/shelves", status_code=302)
+
+    labels = []
+    for row in [r.strip() for r in rows.split(",") if r.strip()]:
+        for pos in range(pos_from, pos_to + 1):
+            sp = ShelfPosition(shelf_id=shelf.shelf_id, row=row, position=pos, height=height)
+            text = f"{shelf.shelf_id} · {build_shelf_label(row, pos, height)}"
+            labels.append((sp, text))
+
+    html = render_printable_qr_sheet(labels, settings)
+    return HTMLResponse(content=html)
+
+
 # ── Admin ──────────────────────────────────────
 
 @router.get("/admin/users", response_class=HTMLResponse)
@@ -281,4 +623,63 @@ async def admin_users_page(
 
     return tpl.TemplateResponse(request, "admin_users.html", {
         "user": user, "users": users, "status_filter": status_filter or "",
+        "flash_success": request.query_params.get("success"),
+        "flash_error": request.query_params.get("error"),
     })
+
+
+# ── User management (web forms) ───────────────
+
+@router.post("/admin/users/create")
+async def admin_user_create(
+    request: Request,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    username: Annotated[str, Form()],
+    email: Annotated[str, Form()],
+    password: Annotated[str, Form()],
+    is_admin: Annotated[str, Form()] = "",
+):
+    user = await _get_web_user(request, settings, session)
+    if not user or not user.is_admin:
+        return RedirectResponse("/login", status_code=302)
+
+    existing = (await session.exec(
+        select(User).where((User.username == username.strip()) | (User.email == email.strip()))
+    )).first()
+    if existing:
+        return RedirectResponse("/admin/users?error=Username+or+email+already+taken", status_code=302)
+
+    new_user = User(
+        username=username.strip(),
+        email=email.strip(),
+        hashed_password=hash_password(password),
+        status=UserStatus.APPROVED,
+        status_changed_at=datetime.now(UTC),
+        approved_by_id=user.id,
+        is_admin=bool(is_admin),
+    )
+    session.add(new_user)
+    await session.commit()
+    return RedirectResponse(f"/admin/users?success=User+{username.strip()}+created", status_code=302)
+
+
+@router.post("/admin/users/{user_id}/delete")
+async def admin_user_delete(
+    request: Request,
+    user_id: int,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    user = await _get_web_user(request, settings, session)
+    if not user or not user.is_admin:
+        return RedirectResponse("/login", status_code=302)
+
+    if user_id == user.id:
+        return RedirectResponse("/admin/users?error=Cannot+delete+yourself", status_code=302)
+
+    target = await session.get(User, user_id)
+    if target:
+        await session.delete(target)
+        await session.commit()
+    return RedirectResponse("/admin/users?success=User+deleted", status_code=302)

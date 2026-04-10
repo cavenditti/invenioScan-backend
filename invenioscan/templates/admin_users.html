@@ -1,19 +1,57 @@
 {% extends "base.html" %}
 {% block title %}User Management — Shelfscan{% endblock %}
 {% block content %}
-<hgroup style="margin-top: 2rem;">
-  <h1>User Management</h1>
-  <p>Approve or deny registration requests</p>
-</hgroup>
-
-<div style="display: flex; gap: .5rem; margin-bottom: 1rem;">
-  <a href="/admin/users" role="button" class="{{ '' if status_filter else 'outline' }}">All</a>
-  <a href="/admin/users?status=pending" role="button" class="{{ '' if status_filter == 'pending' else 'outline' }}">Pending</a>
-  <a href="/admin/users?status=approved" role="button" class="{{ '' if status_filter == 'approved' else 'outline' }}">Approved</a>
-  <a href="/admin/users?status=denied" role="button" class="{{ '' if status_filter == 'denied' else 'outline' }}">Denied</a>
+<div class="page-header">
+  <hgroup>
+    <p class="kicker">Admin</p>
+    <h1 class="mt-0">User Management</h1>
+    <p class="text-muted">Create, approve, or deny users</p>
+  </hgroup>
 </div>
 
-<figure>
+<!-- Create user form -->
+<details class="mb-1">
+  <summary role="button" class="outline">+ Create User</summary>
+  <div class="card mt-1">
+    <form method="post" action="/admin/users/create">
+      <div class="grid">
+        <label>
+          Username
+          <input type="text" name="username" required minlength="2" maxlength="80">
+        </label>
+        <label>
+          Email
+          <input type="email" name="email" required>
+        </label>
+        <label>
+          Password
+          <input type="password" name="password" required minlength="6">
+        </label>
+      </div>
+      <label>
+        <input type="checkbox" name="is_admin" value="1">
+        Administrator
+      </label>
+      <button type="submit" class="btn-pill btn-pill-primary">Create User</button>
+    </form>
+  </div>
+</details>
+
+{% if flash_success %}
+<div class="flash-success">{{ flash_success }}</div>
+{% endif %}
+{% if flash_error %}
+<div class="flash-error">{{ flash_error }}</div>
+{% endif %}
+
+<div class="gap-row mb-1">
+  <a href="/admin/users" class="btn-pill btn-pill-sm {{ 'btn-pill-primary' if not status_filter else 'btn-pill-outline' }}">All</a>
+  <a href="/admin/users?status=pending" class="btn-pill btn-pill-sm {{ 'btn-pill-primary' if status_filter == 'pending' else 'btn-pill-outline' }}">Pending</a>
+  <a href="/admin/users?status=approved" class="btn-pill btn-pill-sm {{ 'btn-pill-primary' if status_filter == 'approved' else 'btn-pill-outline' }}">Approved</a>
+  <a href="/admin/users?status=denied" class="btn-pill btn-pill-sm {{ 'btn-pill-primary' if status_filter == 'denied' else 'btn-pill-outline' }}">Denied</a>
+</div>
+
+<div class="card" style="overflow-x: auto;">
   <table>
     <thead>
       <tr>
@@ -38,11 +76,10 @@
         <td>{{ "Yes" if u.is_admin else "No" }}</td>
         <td>{{ u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else "—" }}</td>
         <td>
-          {% if u.status.value == "pending" or u.status == "pending" %}
-          <div style="display: flex; gap: .5rem;">
+          <div class="gap-row">
+            {% if u.status.value == "pending" or u.status == "pending" %}
             <button
-              class="outline"
-              style="font-size:.85rem; padding:.3rem .7rem;"
+              class="btn-pill btn-pill-outline btn-pill-sm"
               hx-post="/api/v1/admin/users/{{ u.id }}/approve"
               hx-headers='{"Authorization": "Bearer {{ request.cookies.get("access_token", "") }}"}'
               hx-target="#user-row-{{ u.id }}"
@@ -50,24 +87,26 @@
               hx-on::after-request="location.reload()"
             >✓ Approve</button>
             <button
-              class="outline secondary"
-              style="font-size:.85rem; padding:.3rem .7rem;"
+              class="btn-pill btn-pill-danger btn-pill-sm"
               hx-post="/api/v1/admin/users/{{ u.id }}/deny"
               hx-headers='{"Authorization": "Bearer {{ request.cookies.get("access_token", "") }}"}'
               hx-target="#user-row-{{ u.id }}"
               hx-swap="outerHTML"
               hx-on::after-request="location.reload()"
             >✗ Deny</button>
+            {% endif %}
+            {% if u.id != user.id %}
+            <form method="post" action="/admin/users/{{ u.id }}/delete" onsubmit="return confirm('Delete user {{ u.username }}?')" style="margin:0;">
+              <button type="submit" class="btn-pill btn-pill-danger btn-pill-sm">Delete</button>
+            </form>
+            {% endif %}
           </div>
-          {% else %}
-          —
-          {% endif %}
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="6" style="text-align:center; color:#999;">No users found</td></tr>
+      <tr><td colspan="6" class="text-center text-muted">No users found</td></tr>
       {% endfor %}
     </tbody>
   </table>
-</figure>
+</div>
 {% endblock %}

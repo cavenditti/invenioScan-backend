@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit" if book else "Add" }} Book — Shelfscan{% endblock %}
+{% block content %}
+<div class="page-header">
+  <hgroup>
+    <p class="kicker">{{ "Edit" if book else "New" }} Book</p>
+    <h1 class="mt-0">{{ book.title if book else "Add a book" }}</h1>
+  </hgroup>
+</div>
+
+{% if error %}
+<div class="flash-error">{{ error }}</div>
+{% endif %}
+
+<div class="card">
+  <form method="post">
+    <div class="grid">
+      <label>
+        Title <small>(required)</small>
+        <input type="text" name="title" value="{{ book.title if book else '' }}" required maxlength="500">
+      </label>
+      <label>
+        Author
+        <input type="text" name="author" value="{{ book.author if book and book.author else '' }}" maxlength="500">
+      </label>
+    </div>
+
+    <div class="grid">
+      <label>
+        ISBN
+        <input type="text" name="isbn" value="{{ book.isbn if book and book.isbn else '' }}" maxlength="20">
+      </label>
+      <label>
+        Publication Year
+        <input type="number" name="publication_year" value="{{ book.publication_year if book and book.publication_year else '' }}" min="0" max="9999">
+      </label>
+    </div>
+
+    <div class="grid">
+      <label>
+        Document Type
+        <select name="document_type">
+          {% for dt in ["BOOK", "JOURNAL", "THESIS", "REPORT", "OTHER"] %}
+          <option value="{{ dt }}" {{ "selected" if book and book.document_type == dt else ("selected" if not book and dt == "BOOK" else "") }}>{{ dt }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Language
+        <input type="text" name="language" value="{{ book.language if book and book.language else '' }}" maxlength="10" placeholder="e.g. en, de, it">
+      </label>
+    </div>
+
+    <label>
+      Cover Image URL
+      <input type="url" name="cover_image_url" value="{{ book.cover_image_url if book and book.cover_image_url else '' }}" maxlength="1000" placeholder="https://…">
+    </label>
+
+    <label>
+      Notes
+      <textarea name="notes" rows="3" placeholder="Free-text notes about this book">{{ book.notes if book and book.notes else '' }}</textarea>
+    </label>
+
+    <label>
+      Extra Metadata <small>(JSON object, e.g. {"key": "value"})</small>
+      <textarea name="extra" rows="4" placeholder='{"key": "value"}'>{{ book.extra | tojson(indent=2) if book and book.extra else '' }}</textarea>
+    </label>
+
+    <div class="gap-row mt-1">
+      <button type="submit" class="btn-pill btn-pill-primary">{{ "Save Changes" if book else "Create Book" }}</button>
+      {% if book %}
+      <a href="/books/{{ book.id }}" class="btn-pill btn-pill-outline">Cancel</a>
+      {% else %}
+      <a href="/books" class="btn-pill btn-pill-outline">Cancel</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}
