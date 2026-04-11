@@ -183,6 +183,10 @@ class IngestResponse(BaseModel):
     book_id: int
     copy_id: int
     scan_id: str
+    title: str | None = None
+    author: str | None = None
+    cover_image_url: str | None = None
+    enriched: bool = False
 
 
 # ── QR ────────────────────────────────────────────────────

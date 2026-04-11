@@ -16,6 +16,7 @@ dependencies = [
 	"qrcode[pil]>=8.2",
 	"uvicorn[standard]>=0.34.0",
 	"greenlet>=3.3.2",
+	"httpx>=0.28",
 ]
 
 [project.optional-dependencies]

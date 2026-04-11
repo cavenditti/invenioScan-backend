@@ -295,3 +295,135 @@ async def test_admin_required_for_delete(client: AsyncClient):
     admin_headers = {"Authorization": f"Bearer {admin_resp.json()['access_token']}"}
     resp = await client.delete(f"/api/v1/books/{book_id}", headers=admin_headers)
     assert resp.status_code == 204
+
+
+# ── ISBN enrichment integration tests ─────────────────────
+
+SAMPLE_OL_RESPONSE = {
+    "ISBN:9780140328721": {
+        "title": "Fantastic Mr. Fox",
+        "authors": [{"name": "Roald Dahl", "url": "https://openlibrary.org/authors/OL34184A"}],
+        "publish_date": "October 1, 1988",
+        "cover": {
+            "small": "https://covers.openlibrary.org/b/id/9259131-S.jpg",
+            "medium": "https://covers.openlibrary.org/b/id/9259131-M.jpg",
+            "large": "https://covers.openlibrary.org/b/id/9259131-L.jpg",
+        },
+        "number_of_pages": 96,
+        "publishers": [{"name": "Puffin Books"}],
+        "subjects": [{"name": "Animals", "url": "https://openlibrary.org/subjects/animals"}],
+        "identifiers": {"isbn_13": ["9780140328721"], "isbn_10": ["0140328726"]},
+    }
+}
+
+
+def _patch_isbn_lookup(monkeypatch, response_data):
+    """Patch httpx.AsyncClient to return *response_data* for any GET."""
+    import httpx
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return response_data
+
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def get(self, url, params=None):
+            return FakeResponse()
+
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: FakeClient())
+
+
+async def test_ingest_isbn_enriched(client: AsyncClient, monkeypatch):
+    """ISBN ingest with Open Library data fills title, author, cover, extra."""
+    _patch_isbn_lookup(monkeypatch, SAMPLE_OL_RESPONSE)
+
+    token = await _register_and_login(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    resp = await client.post("/api/v1/ingest", json={
+        "shelf": {"shelf_id": "E1", "row": "1", "position": 1, "height": 2},
+        "source_type": "isbn",
+        "isbn": "9780140328721",
+    }, headers=headers)
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["title"] == "Fantastic Mr. Fox"
+    assert data["author"] == "Roald Dahl"
+    assert data["cover_image_url"] == "https://covers.openlibrary.org/b/id/9259131-M.jpg"
+    assert data["enriched"] is True
+
+    # Verify persisted book
+    book_resp = await client.get(f"/api/v1/books/{data['book_id']}", headers=headers)
+    book = book_resp.json()
+    assert book["title"] == "Fantastic Mr. Fox"
+    assert book["author"] == "Roald Dahl"
+    assert book["publication_year"] == 1988
+    assert book["extra"]["publishers"] == ["Puffin Books"]
+    assert book["extra"]["number_of_pages"] == 96
+
+
+async def test_ingest_isbn_user_metadata_wins(client: AsyncClient, monkeypatch):
+    """User-provided title/author override Open Library data."""
+    _patch_isbn_lookup(monkeypatch, SAMPLE_OL_RESPONSE)
+
+    token = await _register_and_login(client, username="user2", email="user2@test.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    resp = await client.post("/api/v1/ingest", json={
+        "shelf": {"shelf_id": "E2", "row": "1", "position": 1, "height": 2},
+        "source_type": "isbn",
+        "isbn": "9780140328721",
+        "title": "My Custom Title",
+        "author": "Custom Author",
+        "publication_year": 2000,
+    }, headers=headers)
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["title"] == "My Custom Title"
+    assert data["author"] == "Custom Author"
+    # Cover still comes from lookup since user can't provide one via ISBN ingest
+    assert data["cover_image_url"] == "https://covers.openlibrary.org/b/id/9259131-M.jpg"
+    assert data["enriched"] is True
+
+    book_resp = await client.get(f"/api/v1/books/{data['book_id']}", headers=headers)
+    book = book_resp.json()
+    assert book["publication_year"] == 2000
+
+
+async def test_ingest_isbn_lookup_failure_graceful(client: AsyncClient, monkeypatch):
+    """When Open Library is unreachable, ingest still succeeds with fallback data."""
+    import httpx
+
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def get(self, url, params=None):
+            raise httpx.TimeoutException("timed out")
+
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: FakeClient())
+
+    token = await _register_and_login(client, username="user3", email="user3@test.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    resp = await client.post("/api/v1/ingest", json={
+        "shelf": {"shelf_id": "E3", "row": "1", "position": 1, "height": 2},
+        "source_type": "isbn",
+        "isbn": "9780000000000",
+    }, headers=headers)
+    assert resp.status_code == 201
+    data = resp.json()
+    # Falls back to ISBN as title
+    assert data["title"] == "9780000000000"
+    assert data["enriched"] is False

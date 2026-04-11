@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     qr_box_size: int = 8
     qr_border: int = 4
 
+    # ISBN lookup (Open Library)
+    isbn_lookup_enabled: bool = True
+    isbn_lookup_timeout_seconds: float = 5.0
+
 
 @lru_cache
 def get_settings() -> Settings:
