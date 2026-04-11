@@ -32,6 +32,10 @@ async def upload_ingest(
     height: Annotated[int, Form()],
     title: Annotated[str | None, Form()] = None,
     author: Annotated[str | None, Form()] = None,
+    publication_year: Annotated[int | None, Form()] = None,
+    document_type: Annotated[str | None, Form()] = None,
+    language: Annotated[str | None, Form()] = None,
+    notes: Annotated[str | None, Form()] = None,
     image: UploadFile = File(...),
     user: Annotated[User, Depends(get_current_user)] = None,
     session: Annotated[AsyncSession, Depends(get_session)] = None,
@@ -44,6 +48,10 @@ async def upload_ingest(
         image_reference=public_url,
         title=title or "Untitled (image scan)",
         author=author,
+        publication_year=publication_year,
+        document_type=document_type,
+        language=language,
+        notes=notes,
     )
     return await _perform_ingest(payload, user, session)
 
@@ -72,7 +80,11 @@ async def _perform_ingest(
             title=payload.title or payload.isbn or "Untitled",
             author=payload.author,
             isbn=payload.isbn,
+            publication_year=payload.publication_year,
+            document_type=payload.document_type or "BOOK",
+            language=payload.language,
             cover_image_url=payload.image_reference if payload.source_type == SourceType.IMAGE_REFERENCE else None,
+            notes=payload.notes,
             created_by_id=user.id,
         )
         session.add(book)

@@ -160,6 +160,10 @@ class IngestRequest(BaseModel):
     image_reference: str | None = None
     title: str | None = None
     author: str | None = None
+    publication_year: int | None = None
+    document_type: str | None = None
+    language: str | None = None
+    notes: str | None = None
 
     def model_post_init(self, __context: object) -> None:
         if self.source_type == SourceType.ISBN:
