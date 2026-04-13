@@ -1,17 +1,17 @@
 /* ── Pico overrides — match mobile app palette ── */
-:root {
+:root:not([data-theme=dark]), [data-theme=light]{
   --pico-primary: #8b5e34;
   --pico-primary-hover: #6d3d14;
-  --pico-primary-focus: rgba(139, 94, 52, .25);
+  --pico-primary-focus: rgba(139, 81, 52, 0.25);
   --pico-primary-inverse: #fffaf2;
   --pico-background-color: #f4efe6;
-  --pico-card-background-color: #fffaf2;
+  --pico-card-background-color: #ffffff;
   --pico-card-sectioning-background-color: #f9f4ec;
   --pico-border-radius: 14px;
   --pico-form-element-border-color: #d9c5aa;
   --pico-form-element-active-border-color: #8b5e34;
   --pico-form-element-focus-color: rgba(139, 94, 52, .25);
-  --pico-form-element-background-color: #fff;
+  --pico-form-element-background-color: #fffdfa;
   --pico-color: #2e2418;
   --pico-muted-color: #5b4c3b;
   --pico-muted-border-color: #e8dbc6;
@@ -36,6 +36,11 @@ body {
 main.container {
   flex: 1 0 auto;
   width: 100%;
+}
+
+footer {
+  flex-shrink: 0;
+  border-bottom: var(--pico-color) 8px solid;
 }
 
 /* ── Nav ── */
