@@ -457,6 +457,33 @@ async def copy_delete(
     return RedirectResponse("/books", status_code=302)
 
 
+@router.post("/copies/{copy_id}/move")
+async def copy_move(
+    request: Request,
+    copy_id: int,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    shelf_id: Annotated[int, Form()],
+    row: Annotated[str, Form()],
+    position: Annotated[int, Form()],
+    height: Annotated[int, Form()],
+):
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    copy = await session.get(BookCopy, copy_id)
+    if not copy:
+        return RedirectResponse("/books", status_code=302)
+    copy.shelf_id = shelf_id
+    copy.row = row.strip()
+    copy.position = position
+    copy.height = height
+    copy.updated_at = datetime.now(UTC)
+    session.add(copy)
+    await session.commit()
+    return RedirectResponse(f"/books/{copy.book_id}", status_code=302)
+
+
 # ── Shelves ────────────────────────────────────
 
 @router.get("/shelves", response_class=HTMLResponse)

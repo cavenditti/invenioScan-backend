@@ -96,8 +96,27 @@
           <td class="mono-sm">{{ copy.scan_id | string | truncate(8, True, "") }}</td>
           <td>{{ copy.notes or "—" }}</td>
           <td>
-            <form method="post" action="/copies/{{ copy.id }}/delete" onsubmit="return confirm('Remove this copy?')" class="no-margin">
-              <button type="submit" class="btn-pill btn-pill-danger btn-pill-sm btn-pill-xs">✕</button>
+            <div class="btn-group">
+              <button title="Move" type="button" class="btn-pill btn-pill-outline btn-pill-sm btn-pill-xs icon-arrow-right-left" onclick="this.closest('tr').nextElementSibling.hidden = !this.closest('tr').nextElementSibling.hidden"></button>
+              <form method="post" action="/copies/{{ copy.id }}/delete" onsubmit="return confirm('Remove this copy?')" class="no-margin">
+                <button title="Delete" type="submit" class="btn-pill btn-pill-danger btn-pill-sm btn-pill-xs icon-x"></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        <tr hidden class="move-row">
+          <td colspan="7">
+            <form method="post" action="/copies/{{ copy.id }}/move" class="move-form">
+              <select name="shelf_id" required>
+                {% for s in all_shelves %}
+                <option value="{{ s.id }}" {% if s.id == copy.shelf_id %}selected{% endif %}>{{ s.shelf_id }}{% if s.label %} — {{ s.label }}{% endif %}</option>
+                {% endfor %}
+              </select>
+              <input type="text" name="row" value="{{ copy.row }}" placeholder="Row" required maxlength="10">
+              <input type="number" name="position" value="{{ copy.position }}" min="1" required>
+              <input type="number" name="height" value="{{ copy.height }}" min="1" required>
+              <button type="submit" class="btn-pill btn-pill-primary btn-pill-sm btn-pill-xs">Save</button>
+              <button type="button" class="btn-pill btn-pill-outline btn-pill-sm btn-pill-xs" onclick="this.closest('tr').hidden = true">Cancel</button>
             </form>
           </td>
         </tr>
