@@ -27,7 +27,15 @@ html {
 body {
   background: var(--pico-background-color);
   color: var(--pico-color);
-  min-height: calc(100vh - 12px);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+main.container {
+  flex: 1 0 auto;
+  width: 100%;
 }
 
 /* ── Nav ── */
