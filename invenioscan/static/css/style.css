@@ -27,12 +27,13 @@ html {
 body {
   background: var(--pico-background-color);
   color: var(--pico-color);
+  min-height: calc(100vh - 12px);
 }
 
 /* ── Nav ── */
 nav.top-nav {
   background: #2e2418;
-  padding: .4rem 1.5rem;
+  padding: .15rem 1.5rem;
   margin-bottom: 0;
   position: sticky;
   top: 0;
@@ -41,7 +42,16 @@ nav.top-nav {
 nav.top-nav ul { margin: 0; list-style: none; padding: 0; flex-wrap: wrap; gap: 0 .25rem; }
 nav.top-nav a, nav.top-nav strong { color: #f4efe6 !important; text-decoration: none; }
 nav.top-nav a:hover { color: #d9c5aa !important; }
-nav.top-nav .nav-brand { font-size: 1.05rem; letter-spacing: .02em; }
+nav.top-nav .nav-brand { font-size: 1rem; letter-spacing: .02em; }
+nav.top-nav li a { font-size: .85rem; }
+nav.top-nav i { font-size: .85em; vertical-align: -1px; margin-right: .15rem; }
+
+/* ── Wider container ── */
+.container {
+  max-width: 1200px;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
 
 /* ── Cards ── */
 .card {
@@ -49,6 +59,7 @@ nav.top-nav .nav-brand { font-size: 1.05rem; letter-spacing: .02em; }
   border: 1px solid var(--pico-card-border-color);
   border-radius: 24px;
   padding: 1.5rem;
+  box-shadow: var(--pico-card-box-shadow);
 }
 article {
   border-radius: 24px !important;
@@ -291,15 +302,10 @@ dd { margin: 0; }
 @media (max-width: 768px) {
   /* Nav: stack brand and links */
   nav.top-nav {
-    padding: .4rem 1rem;
+    padding: .15rem .75rem;
   }
-  nav.top-nav ul {
-    flex-wrap: wrap;
-    gap: .25rem;
-  }
-  nav.top-nav li a,
-  nav.top-nav li strong a {
-    font-size: .85rem;
+  nav.top-nav li a {
+    font-size: .78rem;
   }
 
   /* Page header: stack title above buttons */
@@ -370,10 +376,10 @@ dd { margin: 0; }
 @media (max-width: 480px) {
   /* Nav: compact for small phones */
   nav.top-nav {
-    padding: .3rem .75rem;
+    padding: .1rem .5rem;
   }
   nav.top-nav li a {
-    font-size: .78rem;
+    font-size: .72rem;
   }
 
   /* Buttons: slightly smaller */
