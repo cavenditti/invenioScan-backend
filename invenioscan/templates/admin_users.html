@@ -51,7 +51,7 @@
   <a href="/admin/users?status=denied" class="btn-pill btn-pill-sm {{ 'btn-pill-primary' if status_filter == 'denied' else 'btn-pill-outline' }}">Denied</a>
 </div>
 
-<div class="card" style="overflow-x: auto;">
+<div class="card card-scroll">
   <table>
     <thead>
       <tr>
@@ -96,7 +96,7 @@
             >✗ Deny</button>
             {% endif %}
             {% if u.id != user.id %}
-            <form method="post" action="/admin/users/{{ u.id }}/delete" onsubmit="return confirm('Delete user {{ u.username }}?')" style="margin:0;">
+            <form method="post" action="/admin/users/{{ u.id }}/delete" onsubmit="return confirm('Delete user {{ u.username }}?')" class="no-margin">
               <button type="submit" class="btn-pill btn-pill-danger btn-pill-sm">Delete</button>
             </form>
             {% endif %}

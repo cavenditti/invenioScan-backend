@@ -10,7 +10,7 @@
   <a href="/books/new" class="btn-pill btn-pill-primary">+ Add Book</a>
 </div>
 
-<div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+<div class="search-bar">
   <input
     type="search"
     name="q"
@@ -21,12 +21,11 @@
     hx-target="#book-table-body"
     hx-swap="innerHTML"
     hx-push-url="true"
-    style="margin-bottom: 0;"
   >
   <span class="htmx-indicator" aria-busy="true"></span>
 </div>
 
-<div class="card" style="overflow-x: auto;">
+<div class="card card-scroll">
   <table>
     <thead>
       <tr>
@@ -44,9 +43,9 @@
 </div>
 
 {% if total > per_page %}
-<nav class="gap-row mt-1" style="justify-content: center;">
+<nav class="gap-row mt-1 pagination-nav">
   {% if page > 1 %}<a href="/books?q={{ q }}&page={{ page - 1 }}" class="btn-pill btn-pill-outline btn-pill-sm">← Previous</a>{% endif %}
-  <span class="text-muted" style="margin: 0 .5rem;">Page {{ page }} of {{ ((total - 1) // per_page) + 1 }}</span>
+  <span class="text-muted pagination-label">Page {{ page }} of {{ ((total - 1) // per_page) + 1 }}</span>
   {% if page * per_page < total %}<a href="/books?q={{ q }}&page={{ page + 1 }}" class="btn-pill btn-pill-outline btn-pill-sm">Next →</a>{% endif %}
 </nav>
 {% endif %}

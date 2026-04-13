@@ -1,19 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Login — Shelfscan{% endblock %}
-{% block nav %}
-<nav class="top-nav">
-  <ul><li><strong class="nav-brand"><a href="/">📚 Shelfscan</a></strong></li></ul>
-  <ul><li><a href="/register">Register</a></li></ul>
-</nav>
-{% endblock %}
+{% block nav %}{% endblock %}
 {% block content %}
-<div style="max-width: 480px; margin: 3rem auto;">
+<div class="form-card-narrow">
   <p class="kicker">Shelfscan</p>
-  <h1 style="margin-bottom: .25rem;">Shelf first, then scan fast</h1>
-  <p class="text-muted" style="margin-bottom: 2rem;">QR shelves and barcodes are auto-detected. Use the cover button when a barcode is missing.</p>
+  <h1 class="auth-heading">Book position tracker</h1>
+  <p class="text-muted auth-subtitle">Manage your catalog, shelves, and book positions.</p>
 
   <div class="card">
-    <h3 style="margin-top: 0;">Login</h3>
+    <h3 class="card-heading">Login</h3>
 
     {% if error %}
     <div class="flash-error">{{ error }}</div>
@@ -26,10 +21,10 @@
       <label for="password">Password</label>
       <input type="password" id="password" name="password" required>
 
-      <button type="submit" class="btn-pill btn-pill-primary" style="width: 100%; margin-top: .5rem;">Sign in</button>
+      <button type="submit" class="btn-pill btn-pill-primary auth-submit">Sign in</button>
     </form>
 
-    <p class="text-center mt-1" style="font-size: .9rem;">
+    <p class="text-center mt-1 auth-footer">
       Don't have an account? <a href="/register">Register</a>
     </p>
   </div>

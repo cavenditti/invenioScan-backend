@@ -1,0 +1,401 @@
+/* ── Pico overrides — match mobile app palette ── */
+:root {
+  --pico-primary: #8b5e34;
+  --pico-primary-hover: #6d3d14;
+  --pico-primary-focus: rgba(139, 94, 52, .25);
+  --pico-primary-inverse: #fffaf2;
+  --pico-background-color: #f4efe6;
+  --pico-card-background-color: #fffaf2;
+  --pico-card-sectioning-background-color: #f9f4ec;
+  --pico-border-radius: 14px;
+  --pico-form-element-border-color: #d9c5aa;
+  --pico-form-element-active-border-color: #8b5e34;
+  --pico-form-element-focus-color: rgba(139, 94, 52, .25);
+  --pico-form-element-background-color: #fff;
+  --pico-color: #2e2418;
+  --pico-muted-color: #5b4c3b;
+  --pico-muted-border-color: #e8dbc6;
+  --pico-table-border-color: #e8dbc6;
+  --pico-card-border-color: #e8dbc6;
+  --pico-secondary: #5b4c3b;
+  --pico-secondary-hover: #2e2418;
+}
+
+html {
+  background: #2e2418;
+}
+body {
+  background: var(--pico-background-color);
+  color: var(--pico-color);
+}
+
+/* ── Nav ── */
+nav.top-nav {
+  background: #2e2418;
+  padding: .4rem 1.5rem;
+  margin-bottom: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+nav.top-nav ul { margin: 0; list-style: none; padding: 0; flex-wrap: wrap; gap: 0 .25rem; }
+nav.top-nav a, nav.top-nav strong { color: #f4efe6 !important; text-decoration: none; }
+nav.top-nav a:hover { color: #d9c5aa !important; }
+nav.top-nav .nav-brand { font-size: 1.05rem; letter-spacing: .02em; }
+
+/* ── Cards ── */
+.card {
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: 24px;
+  padding: 1.5rem;
+}
+article {
+  border-radius: 24px !important;
+  border: 1px solid var(--pico-card-border-color);
+}
+article > header {
+  border-radius: 23px 23px 0 0;
+  overflow: hidden;
+}
+
+/* ── Tables inside cards: inherit card background ── */
+.card table,
+.card thead,
+.card tbody,
+.card tr,
+.card th,
+.card td,
+article table,
+article thead,
+article tbody,
+article tr,
+article th,
+article td {
+  background-color: transparent !important;
+  --pico-table-row-stripped-background-color: transparent;
+}
+
+/* ── Pill buttons ── */
+.btn-pill, a.btn-pill, button.btn-pill {
+  border-radius: 999px !important;
+  padding: .6rem 1.5rem !important;
+  font-weight: 700;
+  font-size: .95rem !important;
+  display: inline-block;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.4;
+}
+.btn-pill-primary, a.btn-pill-primary {
+  background: #8b5e34;
+  color: #fffaf2 !important;
+  border: 2px solid #8b5e34;
+}
+.btn-pill-primary:hover { background: #6d3d14; border-color: #6d3d14; }
+.btn-pill-outline, a.btn-pill-outline {
+  background: transparent;
+  color: #8b5e34 !important;
+  border: 2px solid #8b5e34;
+}
+.btn-pill-outline:hover { background: #8b5e34; color: #fffaf2 !important; }
+.btn-pill-danger, a.btn-pill-danger {
+  background: transparent;
+  color: #991b1b !important;
+  border: 2px solid #991b1b;
+}
+.btn-pill-danger:hover { background: #991b1b; color: #fff !important; }
+.btn-pill-sm, a.btn-pill-sm, button.btn-pill-sm {
+  padding: .35rem 1rem !important;
+  font-size: .82rem !important;
+}
+
+/* ── Kicker label ── */
+.kicker {
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #8b5e34;
+  margin-bottom: .25rem;
+}
+
+/* ── Badges ── */
+.badge {
+  display: inline-block;
+  padding: .2em .65em;
+  border-radius: 999px;
+  font-size: .78em;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+.badge-pending { background: #fde68a; color: #92400e; }
+.badge-approved { background: #bbf7d0; color: #166534; }
+.badge-denied { background: #fecaca; color: #991b1b; }
+
+/* ── Stat cards ── */
+.stat-card { text-align: center; padding: 1.5rem; }
+.stat-card h2 { margin: 0; font-size: 2.5rem; color: #8b5e34; }
+.stat-card p { margin: .25rem 0 0; color: var(--pico-muted-color); }
+
+/* ── Flash messages ── */
+.flash-success {
+  background: #bbf7d0; color: #166534;
+  padding: .75rem 1rem; border-radius: 14px;
+  margin-bottom: 1rem;
+}
+.flash-error {
+  background: #fecaca; color: #991b1b;
+  padding: .75rem 1rem; border-radius: 14px;
+  margin-bottom: 1rem;
+}
+
+/* ── Tables ── */
+table { font-size: .92rem; }
+
+/* ── HTMX loading ── */
+.htmx-indicator { display: none; }
+.htmx-request .htmx-indicator { display: inline-block; }
+
+/* ── Utilities ── */
+.text-muted { color: var(--pico-muted-color); }
+.text-center { text-align: center; }
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: 1rem; }
+.mt-2 { margin-top: 2rem; }
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 1rem; }
+.no-margin { margin: 0; }
+.full-width { width: 100%; }
+.gap-row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+
+/* ── Action button rows: equal sizing ── */
+.action-buttons {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.action-buttons .btn-pill,
+.action-buttons a.btn-pill,
+.action-buttons button.btn-pill {
+  white-space: nowrap;
+  box-sizing: border-box;
+  width: auto !important;
+  margin: 0 !important;
+  vertical-align: middle;
+  line-height: 1.4 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+.action-buttons form {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Page header with action ── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.page-header hgroup { margin: 0; }
+
+/* ── Description list styling ── */
+dl { display: grid; grid-template-columns: auto 1fr; gap: .35rem 1.25rem; }
+dt { font-weight: 600; color: var(--pico-muted-color); }
+dd { margin: 0; }
+
+/* ── Layout helpers ── */
+.form-card-narrow {
+  max-width: 480px;
+  margin: 2rem auto;
+}
+.form-card-medium {
+  max-width: 600px;
+}
+.card-scroll {
+  overflow-x: auto;
+}
+.card-heading {
+  margin-top: 0;
+}
+
+/* ── Search bar ── */
+.search-bar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.search-bar input[type="search"] {
+  margin-bottom: 0;
+}
+
+/* ── Book detail ── */
+.cover-img {
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.mono-sm {
+  font-size: .8rem;
+  font-family: monospace;
+}
+.btn-pill-xs {
+  padding: .2rem .7rem;
+  font-size: .75rem;
+}
+
+/* ── Pagination ── */
+.pagination-nav {
+  justify-content: center;
+}
+.pagination-label {
+  margin: 0 .5rem;
+}
+
+/* ── Footer ── */
+.footer-muted {
+  text-align: center;
+  padding: 2rem 0;
+  color: var(--pico-muted-color);
+  font-size: .85rem;
+}
+
+/* ── Login / Register page ── */
+.auth-subtitle {
+  margin-bottom: 2rem;
+}
+.auth-heading {
+  margin-bottom: .25rem;
+}
+.auth-submit {
+  width: 100%;
+  margin-top: .5rem;
+}
+.auth-footer {
+  font-size: .9rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  /* Nav: stack brand and links */
+  nav.top-nav {
+    padding: .4rem 1rem;
+  }
+  nav.top-nav ul {
+    flex-wrap: wrap;
+    gap: .25rem;
+  }
+  nav.top-nav li a,
+  nav.top-nav li strong a {
+    font-size: .85rem;
+  }
+
+  /* Page header: stack title above buttons */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .75rem;
+    margin-top: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Action buttons wrap nicely */
+  .action-buttons {
+    gap: .4rem;
+  }
+
+  /* Cards: tighter padding */
+  .card {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+  article {
+    border-radius: 18px !important;
+  }
+  article > header {
+    border-radius: 17px 17px 0 0;
+  }
+
+  /* Stat cards: smaller on mobile */
+  .stat-card h2 { font-size: 1.8rem; }
+  .stat-card { padding: 1rem; }
+
+  /* Tables: smaller font */
+  table { font-size: .82rem; }
+
+  /* Description lists: single column */
+  dl { grid-template-columns: 1fr; gap: .15rem .5rem; }
+
+  /* Auth pages: less margin */
+  .form-card-narrow {
+    margin: 1rem auto;
+    padding: 0 .5rem;
+  }
+
+  /* Containers: less horizontal padding */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Footer */
+  .footer-muted {
+    padding: 1.5rem 0;
+    font-size: .8rem;
+  }
+
+  /* Book detail grid: stack columns */
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Search bar */
+  .search-bar {
+    gap: .5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Nav: compact for small phones */
+  nav.top-nav {
+    padding: .3rem .75rem;
+  }
+  nav.top-nav li a {
+    font-size: .78rem;
+  }
+
+  /* Buttons: slightly smaller */
+  .btn-pill, a.btn-pill, button.btn-pill {
+    padding: .45rem 1rem !important;
+    font-size: .85rem !important;
+  }
+  .btn-pill-sm, a.btn-pill-sm, button.btn-pill-sm {
+    padding: .3rem .75rem !important;
+    font-size: .75rem !important;
+  }
+
+  /* Page title */
+  .page-header h1 { font-size: 1.5rem; }
+  .kicker { font-size: .75rem; }
+
+  /* Cards: even tighter */
+  .card {
+    padding: .85rem;
+    border-radius: 14px;
+  }
+
+  /* Auth heading */
+  .auth-heading { font-size: 1.4rem; }
+}

@@ -10,16 +10,16 @@
       {{ copies|length }} copy{{ "ies" if copies|length != 1 else "" }}
     </p>
   </hgroup>
-  <div class="gap-row">
+  <div class="action-buttons">
     <a href="/shelves/{{ shelf.id }}/edit" class="btn-pill btn-pill-outline btn-pill-sm">Edit</a>
-    <form method="post" action="/shelves/{{ shelf.id }}/delete" onsubmit="return confirm('Delete this shelf?')" style="margin:0;">
+    <form method="post" action="/shelves/{{ shelf.id }}/delete" onsubmit="return confirm('Delete this shelf?')" class="no-margin">
       <button type="submit" class="btn-pill btn-pill-danger btn-pill-sm">Delete</button>
     </form>
   </div>
 </div>
 
 {% if copies %}
-<div class="card" style="overflow-x: auto;">
+<div class="card card-scroll">
   <table>
     <thead>
       <tr>

@@ -11,15 +11,15 @@
       · {{ book.document_type }}
     </p>
   </hgroup>
-  <div class="gap-row">
+  <div class="action-buttons">
     <a href="/books/{{ book.id }}/edit" class="btn-pill btn-pill-outline btn-pill-sm">Edit</a>
     {% if book.isbn %}
-    <form method="post" action="/books/{{ book.id }}/enrich" style="margin:0;">
+    <form method="post" action="/books/{{ book.id }}/enrich" class="no-margin">
       <button type="submit" class="btn-pill btn-pill-outline btn-pill-sm" title="Re-fetch metadata from Open Library using this book's ISBN">Enrich from ISBN</button>
     </form>
     {% endif %}
     {% if user.is_admin %}
-    <form method="post" action="/books/{{ book.id }}/delete" onsubmit="return confirm('Delete this book and all its copies?')" style="margin:0;">
+    <form method="post" action="/books/{{ book.id }}/delete" onsubmit="return confirm('Delete this book and all its copies?')" class="no-margin">
       <button type="submit" class="btn-pill btn-pill-danger btn-pill-sm">Delete</button>
     </form>
     {% endif %}
@@ -29,7 +29,7 @@
 <div class="grid">
   <div>
     <div class="card">
-      <h4 style="margin-top:0;">Details</h4>
+      <h4 class="card-heading">Details</h4>
       <dl>
         <dt>ISBN</dt><dd>{{ book.isbn or "—" }}</dd>
         <dt>Language</dt><dd>{{ book.language or "—" }}</dd>
@@ -38,7 +38,7 @@
         <dt>Notes</dt><dd>{{ book.notes or "—" }}</dd>
       </dl>
       {% if book.extra %}
-      <h5 class="mt-1" style="margin-bottom:.25rem;">Extra metadata</h5>
+      <h5 class="mt-1 mb-0">Extra metadata</h5>
       <dl>
         {% for key, val in book.extra.items() %}
         <dt>{{ key }}</dt><dd>{{ val }}</dd>
@@ -51,15 +51,15 @@
   {% if book.cover_image_url %}
   <div>
     <div class="card text-center">
-      <h4 style="margin-top:0;">Cover</h4>
-      <img src="{{ book.cover_image_url }}" alt="Cover image" style="max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 8px;">
+      <h4 class="card-heading">Cover</h4>
+      <img src="{{ book.cover_image_url }}" alt="Cover image" class="cover-img">
     </div>
   </div>
   {% endif %}
 </div>
 
 <section class="mt-2">
-  <div class="page-header" style="margin-top:0;">
+  <div class="page-header mt-0">
     <hgroup>
       <h3>Copies ({{ copies|length }})</h3>
       <p class="text-muted">Physical locations of this book</p>
@@ -67,7 +67,7 @@
   </div>
 
   {% if copies %}
-  <div class="card" style="overflow-x: auto;">
+  <div class="card card-scroll">
     <table>
       <thead>
         <tr>
@@ -93,11 +93,11 @@
           <td>{{ copy.row }}</td>
           <td>{{ copy.position }}</td>
           <td>{{ copy.height }}</td>
-          <td style="font-size:.8rem; font-family:monospace;">{{ copy.scan_id | string | truncate(8, True, "") }}</td>
+          <td class="mono-sm">{{ copy.scan_id | string | truncate(8, True, "") }}</td>
           <td>{{ copy.notes or "—" }}</td>
           <td>
-            <form method="post" action="/copies/{{ copy.id }}/delete" onsubmit="return confirm('Remove this copy?')" style="margin:0;">
-              <button type="submit" class="btn-pill btn-pill-danger btn-pill-sm" style="padding:.2rem .7rem; font-size:.75rem;">✕</button>
+            <form method="post" action="/copies/{{ copy.id }}/delete" onsubmit="return confirm('Remove this copy?')" class="no-margin">
+              <button type="submit" class="btn-pill btn-pill-danger btn-pill-sm btn-pill-xs">✕</button>
             </form>
           </td>
         </tr>

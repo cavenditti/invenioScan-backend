@@ -1,19 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Register — Shelfscan{% endblock %}
-{% block nav %}
-<nav class="top-nav">
-  <ul><li><strong class="nav-brand"><a href="/">📚 Shelfscan</a></strong></li></ul>
-  <ul><li><a href="/login">Sign in</a></li></ul>
-</nav>
-{% endblock %}
+{% block nav %}{% endblock %}
 {% block content %}
-<div style="max-width: 480px; margin: 3rem auto;">
+<div class="form-card-narrow">
   <p class="kicker">Shelfscan</p>
-  <h1 style="margin-bottom: .25rem;">Create account</h1>
-  <p class="text-muted" style="margin-bottom: 2rem;">An admin must approve your account before you can log in.</p>
+  <h1 class="auth-heading">Create account</h1>
+  <p class="text-muted auth-subtitle">An admin must approve your account before you can log in.</p>
 
   <div class="card">
-    <h3 style="margin-top: 0;">Register</h3>
+    <h3 class="card-heading">Register</h3>
 
     {% if error %}
     <div class="flash-error">{{ error }}</div>
@@ -33,11 +28,11 @@
       <label for="password">Password</label>
       <input type="password" id="password" name="password" required minlength="6">
 
-      <button type="submit" class="btn-pill btn-pill-primary" style="width: 100%; margin-top: .5rem;">Register</button>
+      <button type="submit" class="btn-pill btn-pill-primary auth-submit">Register</button>
     </form>
     {% endif %}
 
-    <p class="text-center mt-1" style="font-size: .9rem;">
+    <p class="text-center mt-1 auth-footer">
       Already have an account? <a href="/login">Sign in</a>
     </p>
   </div>
