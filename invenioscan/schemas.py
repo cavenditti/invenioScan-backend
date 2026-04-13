@@ -189,6 +189,19 @@ class IngestResponse(BaseModel):
     enriched: bool = False
 
 
+# ── Enrich ────────────────────────────────────────────────
+
+class EnrichResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    status: str
+    book_id: int
+    title: str | None = None
+    author: str | None = None
+    cover_image_url: str | None = None
+    fields_updated: list[str] = []
+
+
 # ── QR ────────────────────────────────────────────────────
 
 class ShelfQRCodeRequest(BaseModel):

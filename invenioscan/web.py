@@ -12,6 +12,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from invenioscan.auth import create_access_token, hash_password, verify_password
 from invenioscan.database import get_session
+from invenioscan.isbn_lookup import lookup_isbn
 from invenioscan.models import Book, BookCopy, Shelf, User, UserStatus
 from invenioscan.qr import build_shelf_label, build_shelf_payload, generate_qr_svg, render_printable_qr_sheet
 from invenioscan.schemas import ShelfPosition
@@ -342,6 +343,47 @@ async def book_edit_submit(
     session.add(book)
     await session.commit()
     return RedirectResponse(f"/books/{book.id}", status_code=302)
+
+
+@router.post("/books/{book_id}/enrich")
+async def book_enrich(
+    request: Request,
+    book_id: int,
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    user = await _get_web_user(request, settings, session)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+
+    book = await session.get(Book, book_id)
+    if not book or not book.isbn:
+        return RedirectResponse(f"/books/{book_id}", status_code=302)
+
+    lookup = await lookup_isbn(book.isbn, settings)
+    if lookup:
+        for field, key in [
+            ("title", "title"),
+            ("author", "author"),
+            ("publication_year", "publication_year"),
+            ("cover_image_url", "cover_image_url"),
+        ]:
+            value = lookup.get(key)
+            if value is not None:
+                setattr(book, field, value)
+
+        extra = dict(book.extra) if book.extra else {}
+        for key in ("publishers", "subjects", "identifiers", "number_of_pages", "publish_date_raw"):
+            if lookup.get(key) is not None:
+                extra[key] = lookup[key]
+        if extra:
+            book.extra = extra
+
+        book.updated_at = datetime.now(UTC)
+        session.add(book)
+        await session.commit()
+
+    return RedirectResponse(f"/books/{book_id}", status_code=302)
 
 
 @router.post("/books/{book_id}/delete")

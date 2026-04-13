@@ -13,6 +13,11 @@
   </hgroup>
   <div class="gap-row">
     <a href="/books/{{ book.id }}/edit" class="btn-pill btn-pill-outline btn-pill-sm">Edit</a>
+    {% if book.isbn %}
+    <form method="post" action="/books/{{ book.id }}/enrich" style="margin:0;">
+      <button type="submit" class="btn-pill btn-pill-outline btn-pill-sm" title="Re-fetch metadata from Open Library using this book's ISBN">Enrich from ISBN</button>
+    </form>
+    {% endif %}
     {% if user.is_admin %}
     <form method="post" action="/books/{{ book.id }}/delete" onsubmit="return confirm('Delete this book and all its copies?')" style="margin:0;">
       <button type="submit" class="btn-pill btn-pill-danger btn-pill-sm">Delete</button>

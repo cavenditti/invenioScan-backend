@@ -7,8 +7,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from invenioscan.database import get_session
 from invenioscan.dependencies import get_current_user, require_admin
+from invenioscan.isbn_lookup import lookup_isbn
 from invenioscan.models import Book, BookCopy, User
-from invenioscan.schemas import BookCreate, BookPublic, BookUpdate, BookWithCopies, CopyPublic
+from invenioscan.schemas import BookCreate, BookPublic, BookUpdate, BookWithCopies, CopyPublic, EnrichResponse
+from invenioscan.settings import Settings, get_settings
 
 router = APIRouter(prefix="/books", tags=["books"])
 
@@ -78,6 +80,66 @@ async def update_book(
     await session.commit()
     await session.refresh(book)
     return book
+
+
+@router.post("/{book_id}/enrich", response_model=EnrichResponse)
+async def enrich_book(
+    book_id: int,
+    _user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> EnrichResponse:
+    book = await session.get(Book, book_id)
+    if not book:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    if not book.isbn:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Book has no ISBN — cannot look up metadata.",
+        )
+
+    lookup = await lookup_isbn(book.isbn, settings)
+    if not lookup:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="ISBN lookup returned no results. The external service may be unavailable.",
+        )
+
+    fields_updated: list[str] = []
+    for field, key in [
+        ("title", "title"),
+        ("author", "author"),
+        ("publication_year", "publication_year"),
+        ("cover_image_url", "cover_image_url"),
+    ]:
+        value = lookup.get(key)
+        if value is not None:
+            setattr(book, field, value)
+            fields_updated.append(field)
+
+    # Merge extra metadata
+    extra = dict(book.extra) if book.extra else {}
+    for key in ("publishers", "subjects", "identifiers", "number_of_pages", "publish_date_raw"):
+        if lookup.get(key) is not None:
+            extra[key] = lookup[key]
+    if extra:
+        book.extra = extra
+        if "extra" not in fields_updated:
+            fields_updated.append("extra")
+
+    book.updated_at = datetime.now(UTC)
+    session.add(book)
+    await session.commit()
+    await session.refresh(book)
+
+    return EnrichResponse(
+        status="enriched",
+        book_id=book.id,
+        title=book.title,
+        author=book.author,
+        cover_image_url=book.cover_image_url,
+        fields_updated=fields_updated,
+    )
 
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)

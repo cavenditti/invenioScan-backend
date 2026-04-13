@@ -427,3 +427,78 @@ async def test_ingest_isbn_lookup_failure_graceful(client: AsyncClient, monkeypa
     # Falls back to ISBN as title
     assert data["title"] == "9780000000000"
     assert data["enriched"] is False
+
+
+# ── Book enrich endpoint tests ────────────────────────────
+
+async def test_enrich_book_updates_all_fields(client: AsyncClient, monkeypatch):
+    """POST /books/{id}/enrich overwrites book fields from Open Library."""
+    _patch_isbn_lookup(monkeypatch, SAMPLE_OL_RESPONSE)
+
+    token = await _register_and_login(client, username="enrich1", email="enrich1@test.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Create a bare book with just ISBN and a placeholder title
+    book_resp = await client.post("/api/v1/books", json={
+        "title": "Unknown", "isbn": "9780140328721",
+    }, headers=headers)
+    assert book_resp.status_code == 201
+    book_id = book_resp.json()["id"]
+
+    # Enrich it
+    resp = await client.post(f"/api/v1/books/{book_id}/enrich", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "enriched"
+    assert data["title"] == "Fantastic Mr. Fox"
+    assert data["author"] == "Roald Dahl"
+    assert data["cover_image_url"] == "https://covers.openlibrary.org/b/id/9259131-M.jpg"
+    assert "title" in data["fields_updated"]
+    assert "author" in data["fields_updated"]
+    assert "extra" in data["fields_updated"]
+
+    # Verify persisted
+    book = (await client.get(f"/api/v1/books/{book_id}", headers=headers)).json()
+    assert book["title"] == "Fantastic Mr. Fox"
+    assert book["publication_year"] == 1988
+    assert book["extra"]["publishers"] == ["Puffin Books"]
+
+
+async def test_enrich_book_no_isbn_returns_422(client: AsyncClient):
+    """Books without ISBN cannot be enriched."""
+    token = await _register_and_login(client, username="enrich2", email="enrich2@test.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    book_resp = await client.post("/api/v1/books", json={
+        "title": "No ISBN Book",
+    }, headers=headers)
+    book_id = book_resp.json()["id"]
+
+    resp = await client.post(f"/api/v1/books/{book_id}/enrich", headers=headers)
+    assert resp.status_code == 422
+    assert "no ISBN" in resp.json()["detail"]
+
+
+async def test_enrich_book_lookup_failure_returns_502(client: AsyncClient, monkeypatch):
+    """When Open Library returns nothing, endpoint returns 502."""
+    _patch_isbn_lookup(monkeypatch, {})  # Empty response = not found
+
+    token = await _register_and_login(client, username="enrich3", email="enrich3@test.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    book_resp = await client.post("/api/v1/books", json={
+        "title": "Placeholder", "isbn": "9780000000000",
+    }, headers=headers)
+    book_id = book_resp.json()["id"]
+
+    resp = await client.post(f"/api/v1/books/{book_id}/enrich", headers=headers)
+    assert resp.status_code == 502
+
+
+async def test_enrich_book_not_found_returns_404(client: AsyncClient):
+    """Enriching a non-existent book returns 404."""
+    token = await _register_and_login(client, username="enrich4", email="enrich4@test.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    resp = await client.post("/api/v1/books/99999/enrich", headers=headers)
+    assert resp.status_code == 404
