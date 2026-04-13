@@ -28,8 +28,11 @@ class User(SQLModel, table=True):
 
 class Shelf(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    shelf_id: str = Field(index=True, unique=True, max_length=40)
+    shelf_id: str = Field(index=True, max_length=40)
     label: str | None = Field(default=None, max_length=200)
+    row: str = Field(max_length=10)
+    position: int
+    height: int
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
@@ -59,9 +62,6 @@ class BookCopy(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     book_id: int = Field(foreign_key="book.id", index=True)
     shelf_id: int = Field(foreign_key="shelf.id", index=True)
-    row: str = Field(max_length=10)
-    position: int
-    height: int
     scan_id: UUID = Field(default_factory=uuid4)
     notes: str | None = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

@@ -15,7 +15,8 @@
   {% for shelf in shelves %}
   <article>
     <header>
-      <strong><a href="/shelves/{{ shelf.id }}">{{ shelf.shelf_id }}</a></strong>
+      {% set coord = shelf.row ~ shelf.position ~ "-" ~ shelf.height %}
+      <strong><a href="/shelves/{{ shelf.id }}">{{ shelf.shelf_id }}{% if shelf.shelf_id != coord %} · {{ coord }}{% endif %}</a></strong>
     </header>
     {% if shelf.label %}<p>{{ shelf.label }}</p>{% endif %}
     <p class="text-muted">{{ shelf_copy_counts.get(shelf.id, 0) }} copies</p>

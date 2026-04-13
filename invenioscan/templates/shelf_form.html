@@ -15,9 +15,41 @@
 <div class="card form-card-medium">
   <form method="post">
     <label>
-      Shelf ID <small>(required, unique identifier e.g. S001, A-B-3)</small>
+      Shelf ID <small>(required, e.g. S001, A-B-3)</small>
       <input type="text" name="shelf_id" value="{{ shelf.shelf_id if shelf else '' }}" required maxlength="40" {{ "readonly" if shelf else "" }}>
     </label>
+
+    {% if not shelf %}
+    <div class="grid">
+      <label>
+        Row <small>(required, e.g. A)</small>
+        <input type="text" name="row" value="" required maxlength="10">
+      </label>
+      <label>
+        Position <small>(required)</small>
+        <input type="number" name="position" value="1" min="1" required>
+      </label>
+      <label>
+        Height <small>(required)</small>
+        <input type="number" name="height" value="1" min="1" required>
+      </label>
+    </div>
+    {% else %}
+    <div class="grid">
+      <label>
+        Row
+        <input type="text" value="{{ shelf.row }}" readonly>
+      </label>
+      <label>
+        Position
+        <input type="number" value="{{ shelf.position }}" readonly>
+      </label>
+      <label>
+        Height
+        <input type="number" value="{{ shelf.height }}" readonly>
+      </label>
+    </div>
+    {% endif %}
 
     <label>
       Label <small>(optional description)</small>

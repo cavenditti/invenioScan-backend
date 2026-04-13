@@ -82,17 +82,18 @@
       </thead>
       <tbody>
         {% for copy in copies %}
+        {% set cs = shelves.get(copy.shelf_id) %}
         <tr>
           <td>
-            {% if shelves.get(copy.shelf_id) %}
-            <a href="/shelves/{{ copy.shelf_id }}">{{ shelves[copy.shelf_id].shelf_id }}</a>
+            {% if cs %}
+            <a href="/shelves/{{ cs.id }}">{{ cs.shelf_id }}</a>
             {% else %}
             #{{ copy.shelf_id }}
             {% endif %}
           </td>
-          <td>{{ copy.row }}</td>
-          <td>{{ copy.position }}</td>
-          <td>{{ copy.height }}</td>
+          <td>{{ cs.row if cs else "—" }}</td>
+          <td>{{ cs.position if cs else "—" }}</td>
+          <td>{{ cs.height if cs else "—" }}</td>
           <td class="mono-sm">{{ copy.scan_id | string | truncate(8, True, "") }}</td>
           <td>{{ copy.notes or "—" }}</td>
           <td>
@@ -109,12 +110,10 @@
             <form method="post" action="/copies/{{ copy.id }}/move" class="move-form">
               <select name="shelf_id" required>
                 {% for s in all_shelves %}
-                <option value="{{ s.id }}" {% if s.id == copy.shelf_id %}selected{% endif %}>{{ s.shelf_id }}{% if s.label %} — {{ s.label }}{% endif %}</option>
+                {% set sc = s.row ~ s.position ~ "-" ~ s.height %}
+                <option value="{{ s.id }}" {% if s.id == copy.shelf_id %}selected{% endif %}>{{ s.shelf_id }}{% if s.shelf_id != sc %} · {{ sc }}{% endif %}{% if s.label %} — {{ s.label }}{% endif %}</option>
                 {% endfor %}
               </select>
-              <input type="text" name="row" value="{{ copy.row }}" placeholder="Row" required maxlength="10">
-              <input type="number" name="position" value="{{ copy.position }}" min="1" required>
-              <input type="number" name="height" value="{{ copy.height }}" min="1" required>
               <button type="submit" class="btn-pill btn-pill-primary btn-pill-sm btn-pill-xs">Save</button>
               <button type="button" class="btn-pill btn-pill-outline btn-pill-sm btn-pill-xs" onclick="this.closest('tr').hidden = true">Cancel</button>
             </form>
@@ -139,27 +138,16 @@
             <select name="shelf_id" required>
               <option value="">Select shelf…</option>
               {% for s in all_shelves %}
-              <option value="{{ s.id }}">{{ s.shelf_id }}{% if s.label %} — {{ s.label }}{% endif %}</option>
+              {% set sc = s.row ~ s.position ~ "-" ~ s.height %}
+              <option value="{{ s.id }}">{{ s.shelf_id }}{% if s.shelf_id != sc %} · {{ sc }}{% endif %}{% if s.label %} — {{ s.label }}{% endif %}</option>
               {% endfor %}
             </select>
           </label>
           <label>
-            Row
-            <input type="text" name="row" placeholder="A" required maxlength="10">
-          </label>
-          <label>
-            Position
-            <input type="number" name="position" value="1" min="1" required>
-          </label>
-          <label>
-            Height (cm)
-            <input type="number" name="height" value="30" min="1" required>
+            Notes (optional)
+            <input type="text" name="notes" placeholder="e.g. damaged spine">
           </label>
         </div>
-        <label>
-          Notes (optional)
-          <input type="text" name="notes" placeholder="e.g. damaged spine">
-        </label>
         <button type="submit" class="btn-pill btn-pill-primary">Add Copy</button>
       </form>
     </div>

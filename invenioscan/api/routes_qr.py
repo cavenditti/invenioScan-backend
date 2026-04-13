@@ -41,18 +41,18 @@ async def create_shelf_sheet(
     labels: list[tuple[ShelfPosition, str]] = []
     for row in payload.rows:
         for position in payload.positions:
-            shelf_id = build_shelf_label(row, position, payload.height)
-            labels.append(
-                (
-                    ShelfPosition(
-                        shelf_id=shelf_id,
-                        row=row,
-                        position=position,
-                        height=payload.height,
-                    ),
-                    shelf_id,
+            for height in payload.heights:
+                labels.append(
+                    (
+                        ShelfPosition(
+                            shelf_id=payload.shelf_id,
+                            row=row,
+                            position=position,
+                            height=height,
+                        ),
+                        build_shelf_label(row, position, height),
+                    )
                 )
-            )
 
     html = render_printable_qr_sheet(labels, settings)
     return HTMLResponse(content=html)

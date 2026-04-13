@@ -194,22 +194,31 @@ async def test_shelves_crud(client: AsyncClient):
 
     # Create
     resp = await client.post("/api/v1/shelves", json={
-        "shelf_id": "A1", "label": "Living room shelf",
+        "shelf_id": "A1", "row": "A", "position": 1, "height": 2, "label": "Living room shelf",
     }, headers=headers)
     assert resp.status_code == 201
     shelf = resp.json()
     assert shelf["shelf_id"] == "A1"
+    assert shelf["row"] == "A"
+    assert shelf["position"] == 1
+    assert shelf["height"] == 2
 
-    # Duplicate fails
+    # Duplicate (same shelf_id + row + position + height) fails
     resp = await client.post("/api/v1/shelves", json={
-        "shelf_id": "A1",
+        "shelf_id": "A1", "row": "A", "position": 1, "height": 2,
     }, headers=headers)
     assert resp.status_code == 409
+
+    # Same shelf_id but different coordinates succeeds
+    resp = await client.post("/api/v1/shelves", json={
+        "shelf_id": "A1", "row": "A", "position": 1, "height": 3,
+    }, headers=headers)
+    assert resp.status_code == 201
 
     # List
     resp = await client.get("/api/v1/shelves", headers=headers)
     assert resp.status_code == 200
-    assert len(resp.json()) >= 1
+    assert len(resp.json()) >= 2
 
 
 async def test_ingest_isbn(client: AsyncClient):
@@ -254,22 +263,31 @@ async def test_copies_crud(client: AsyncClient):
     # Create book and shelf first
     book_resp = await client.post("/api/v1/books", json={"title": "Test Book"}, headers=headers)
     book_id = book_resp.json()["id"]
-    shelf_resp = await client.post("/api/v1/shelves", json={"shelf_id": "X1"}, headers=headers)
+    shelf_resp = await client.post("/api/v1/shelves", json={
+        "shelf_id": "X1", "row": "A", "position": 1, "height": 3,
+    }, headers=headers)
     shelf_id = shelf_resp.json()["id"]
+
+    # Create another shelf for move test
+    shelf2_resp = await client.post("/api/v1/shelves", json={
+        "shelf_id": "X1", "row": "B", "position": 2, "height": 1,
+    }, headers=headers)
+    shelf2_id = shelf2_resp.json()["id"]
 
     # Create copy
     resp = await client.post(f"/api/v1/books/{book_id}/copies", json={
-        "shelf_id": shelf_id, "row": "A", "position": 1, "height": 3,
+        "shelf_id": shelf_id,
     }, headers=headers)
     assert resp.status_code == 201
     copy_id = resp.json()["id"]
+    assert resp.json()["shelf_id"] == shelf_id
 
-    # Update copy
+    # Update copy (move to different shelf)
     resp = await client.put(f"/api/v1/copies/{copy_id}", json={
-        "position": 5,
+        "shelf_id": shelf2_id,
     }, headers=headers)
     assert resp.status_code == 200
-    assert resp.json()["position"] == 5
+    assert resp.json()["shelf_id"] == shelf2_id
 
     # Delete copy
     resp = await client.delete(f"/api/v1/copies/{copy_id}", headers=headers)

@@ -13,10 +13,6 @@
   <form method="post" action="/qr" target="_blank">
     <div class="grid">
       <label>
-        Shelf ID
-        <input type="text" name="shelf_id" placeholder="e.g. A1" value="{{ shelf_id or '' }}" required>
-      </label>
-      <label>
         Rows (comma-separated)
         <input type="text" name="rows" placeholder="A,B,C" value="{{ rows or '' }}" required>
       </label>
@@ -30,9 +26,15 @@
         Positions to
         <input type="number" name="pos_to" value="{{ pos_to or 10 }}" min="1" required>
       </label>
+    </div>
+    <div class="grid">
       <label>
-        Height (cm)
-        <input type="number" name="height" value="{{ height or 30 }}" min="1" required>
+        Height from
+        <input type="number" name="height_from" value="{{ height_from or 1 }}" min="1" required>
+      </label>
+      <label>
+        Height to
+        <input type="number" name="height_to" value="{{ height_to or 5 }}" min="1" required>
       </label>
     </div>
     <button type="submit" class="btn-pill btn-pill-primary mt-1">Generate &amp; Print</button>

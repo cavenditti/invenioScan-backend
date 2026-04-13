@@ -65,10 +65,22 @@ async def _perform_ingest(
     settings: Settings,
 ) -> IngestResponse:
     # Find or create shelf
-    result = await session.exec(select(Shelf).where(Shelf.shelf_id == payload.shelf.shelf_id))
+    result = await session.exec(
+        select(Shelf).where(
+            Shelf.shelf_id == payload.shelf.shelf_id,
+            Shelf.row == payload.shelf.row,
+            Shelf.position == payload.shelf.position,
+            Shelf.height == payload.shelf.height,
+        )
+    )
     shelf = result.first()
     if not shelf:
-        shelf = Shelf(shelf_id=payload.shelf.shelf_id)
+        shelf = Shelf(
+            shelf_id=payload.shelf.shelf_id,
+            row=payload.shelf.row,
+            position=payload.shelf.position,
+            height=payload.shelf.height,
+        )
         session.add(shelf)
         await session.flush()
 
@@ -115,9 +127,6 @@ async def _perform_ingest(
     copy = BookCopy(
         book_id=book.id,
         shelf_id=shelf.id,
-        row=payload.shelf.row,
-        position=payload.shelf.position,
-        height=payload.shelf.height,
     )
     session.add(copy)
     await session.commit()

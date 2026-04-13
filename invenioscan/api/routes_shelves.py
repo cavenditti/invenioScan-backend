@@ -40,9 +40,16 @@ async def create_shelf(
     _user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Shelf:
-    existing = await session.exec(select(Shelf).where(Shelf.shelf_id == payload.shelf_id))
+    existing = await session.exec(
+        select(Shelf).where(
+            Shelf.shelf_id == payload.shelf_id,
+            Shelf.row == payload.row,
+            Shelf.position == payload.position,
+            Shelf.height == payload.height,
+        )
+    )
     if existing.first():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Shelf ID already exists")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Shelf already exists")
     shelf = Shelf(**payload.model_dump())
     session.add(shelf)
     await session.commit()
@@ -61,12 +68,6 @@ async def update_shelf(
     if not shelf:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shelf not found")
     update_data = payload.model_dump(exclude_unset=True)
-    if "shelf_id" in update_data:
-        existing = await session.exec(
-            select(Shelf).where(Shelf.shelf_id == update_data["shelf_id"], Shelf.id != shelf_db_id)
-        )
-        if existing.first():
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Shelf ID already exists")
     for key, value in update_data.items():
         setattr(shelf, key, value)
     shelf.updated_at = datetime.now(UTC)

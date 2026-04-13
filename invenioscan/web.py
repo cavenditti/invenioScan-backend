@@ -413,9 +413,6 @@ async def copy_create(
     settings: Annotated[Settings, Depends(get_settings)],
     session: Annotated[AsyncSession, Depends(get_session)],
     shelf_id: Annotated[int, Form()],
-    row: Annotated[str, Form()],
-    position: Annotated[int, Form()],
-    height: Annotated[int, Form()],
     notes: Annotated[str, Form()] = "",
 ):
     user = await _get_web_user(request, settings, session)
@@ -428,9 +425,6 @@ async def copy_create(
     copy = BookCopy(
         book_id=book_id,
         shelf_id=shelf_id,
-        row=row.strip(),
-        position=position,
-        height=height,
         notes=notes.strip() or None,
     )
     session.add(copy)
@@ -464,9 +458,6 @@ async def copy_move(
     settings: Annotated[Settings, Depends(get_settings)],
     session: Annotated[AsyncSession, Depends(get_session)],
     shelf_id: Annotated[int, Form()],
-    row: Annotated[str, Form()],
-    position: Annotated[int, Form()],
-    height: Annotated[int, Form()],
 ):
     user = await _get_web_user(request, settings, session)
     if not user:
@@ -475,9 +466,6 @@ async def copy_move(
     if not copy:
         return RedirectResponse("/books", status_code=302)
     copy.shelf_id = shelf_id
-    copy.row = row.strip()
-    copy.position = position
-    copy.height = height
     copy.updated_at = datetime.now(UTC)
     session.add(copy)
     await session.commit()
@@ -497,7 +485,7 @@ async def shelves_page(
     if not user:
         return RedirectResponse("/login", status_code=302)
 
-    shelves_list = list((await session.exec(select(Shelf).order_by(Shelf.shelf_id))).all())
+    shelves_list = list((await session.exec(select(Shelf).order_by(Shelf.shelf_id, Shelf.row, Shelf.position, Shelf.height))).all())
 
     shelf_copy_counts = {}
     for s in shelves_list:
@@ -528,6 +516,9 @@ async def shelf_create_submit(
     settings: Annotated[Settings, Depends(get_settings)],
     session: Annotated[AsyncSession, Depends(get_session)],
     shelf_id: Annotated[str, Form()],
+    row: Annotated[str, Form()],
+    position: Annotated[int, Form()],
+    height: Annotated[int, Form()],
     label: Annotated[str, Form()] = "",
 ):
     tpl = _templates(request)
@@ -535,13 +526,27 @@ async def shelf_create_submit(
     if not user:
         return RedirectResponse("/login", status_code=302)
 
-    existing = (await session.exec(select(Shelf).where(Shelf.shelf_id == shelf_id.strip()))).first()
+    existing = (await session.exec(
+        select(Shelf).where(
+            Shelf.shelf_id == shelf_id.strip(),
+            Shelf.row == row.strip(),
+            Shelf.position == position,
+            Shelf.height == height,
+        )
+    )).first()
     if existing:
         return tpl.TemplateResponse(request, "shelf_form.html", {
-            "user": user, "shelf": None, "error": f"A shelf with ID '{shelf_id.strip()}' already exists.",
+            "user": user, "shelf": None,
+            "error": f"A shelf with ID '{shelf_id.strip()}', row '{row.strip()}', position {position}, height {height} already exists.",
         })
 
-    shelf = Shelf(shelf_id=shelf_id.strip(), label=label.strip() or None)
+    shelf = Shelf(
+        shelf_id=shelf_id.strip(),
+        row=row.strip(),
+        position=position,
+        height=height,
+        label=label.strip() or None,
+    )
     session.add(shelf)
     await session.commit()
     await session.refresh(shelf)
@@ -564,7 +569,7 @@ async def shelf_detail_page(
     if not shelf:
         return RedirectResponse("/shelves", status_code=302)
 
-    copies = list((await session.exec(select(BookCopy).where(BookCopy.shelf_id == shelf_db_id).order_by(BookCopy.row, BookCopy.position))).all())
+    copies = list((await session.exec(select(BookCopy).where(BookCopy.shelf_id == shelf_db_id))).all())
     books = {}
     for c in copies:
         if c.book_id not in books:
@@ -598,7 +603,6 @@ async def shelf_edit_submit(
     shelf_db_id: int,
     settings: Annotated[Settings, Depends(get_settings)],
     session: Annotated[AsyncSession, Depends(get_session)],
-    shelf_id: Annotated[str, Form()],
     label: Annotated[str, Form()] = "",
 ):
     tpl = _templates(request)
@@ -613,7 +617,7 @@ async def shelf_edit_submit(
     shelf.updated_at = datetime.now(UTC)
     session.add(shelf)
     await session.commit()
-    return RedirectResponse(f"/shelves/{shelf.id}", status_code=302)
+    return RedirectResponse(f"/shelves/{shelf_db_id}", status_code=302)
 
 
 @router.post("/shelves/{shelf_db_id}/delete")
@@ -658,11 +662,11 @@ async def qr_generate(
     request: Request,
     settings: Annotated[Settings, Depends(get_settings)],
     session: Annotated[AsyncSession, Depends(get_session)],
-    shelf_id: Annotated[str, Form()],
     rows: Annotated[str, Form()],
     pos_from: Annotated[int, Form()],
     pos_to: Annotated[int, Form()],
-    height: Annotated[int, Form()],
+    height_from: Annotated[int, Form()],
+    height_to: Annotated[int, Form()],
 ):
     user = await _get_web_user(request, settings, session)
     if not user:
@@ -671,10 +675,26 @@ async def qr_generate(
     labels = []
     for row in [r.strip() for r in rows.split(",") if r.strip()]:
         for pos in range(pos_from, pos_to + 1):
-            sp = ShelfPosition(shelf_id=shelf_id.strip(), row=row, position=pos, height=height)
-            text = f"{shelf_id.strip()} · {build_shelf_label(row, pos, height)}"
-            labels.append((sp, text))
+            for h in range(height_from, height_to + 1):
+                sid = build_shelf_label(row, pos, h)
+                # Find or create shelf
+                existing = (await session.exec(
+                    select(Shelf).where(
+                        Shelf.shelf_id == sid,
+                        Shelf.row == row,
+                        Shelf.position == pos,
+                        Shelf.height == h,
+                    )
+                )).first()
+                if not existing:
+                    existing = Shelf(shelf_id=sid, row=row, position=pos, height=h)
+                    session.add(existing)
+                    await session.flush()
 
+                sp = ShelfPosition(shelf_id=sid, row=row, position=pos, height=h)
+                labels.append((sp, sid))
+
+    await session.commit()
     html = render_printable_qr_sheet(labels, settings)
     return HTMLResponse(content=html)
 

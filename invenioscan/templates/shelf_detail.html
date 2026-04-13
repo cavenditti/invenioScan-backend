@@ -4,10 +4,12 @@
 <div class="page-header">
   <hgroup>
     <p class="kicker">Shelf</p>
-    <h1 class="mt-0">{{ shelf.shelf_id }}</h1>
+    {% set coord = shelf.row ~ shelf.position ~ "-" ~ shelf.height %}
+    <h1 class="mt-0">{{ shelf.shelf_id }}{% if shelf.shelf_id != coord %} · {{ coord }}{% endif %}</h1>
     <p class="text-muted">
       {% if shelf.label %}{{ shelf.label }} · {% endif %}
-      {{ copies|length }} copy{{ "ies" if copies|length != 1 else "" }}
+      Row <strong>{{ shelf.row }}</strong>, Position <strong>{{ shelf.position }}</strong>, Height <strong>{{ shelf.height }}</strong> ·
+      {{ copies|length }} {{ "copies" if copies|length != 1 else "copy" }}
     </p>
   </hgroup>
   <div class="action-buttons">
@@ -23,26 +25,22 @@
   <table>
     <thead>
       <tr>
-        <th>Row</th>
-        <th>Position</th>
-        <th>Height</th>
         <th>Book</th>
         <th>Author</th>
         <th>ISBN</th>
+        <th>Notes</th>
       </tr>
     </thead>
     <tbody>
       {% for copy in copies %}
       {% set book = books.get(copy.book_id) %}
       <tr>
-        <td>{{ copy.row }}</td>
-        <td>{{ copy.position }}</td>
-        <td>{{ copy.height }}</td>
         <td>
           {% if book %}<a href="/books/{{ book.id }}">{{ book.title }}</a>{% else %}—{% endif %}
         </td>
         <td>{{ book.author if book and book.author else "—" }}</td>
         <td>{{ book.isbn if book and book.isbn else "—" }}</td>
+        <td>{{ copy.notes or "—" }}</td>
       </tr>
       {% endfor %}
     </tbody>

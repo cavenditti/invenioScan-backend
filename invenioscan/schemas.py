@@ -41,11 +41,13 @@ class ShelfPosition(BaseModel):
 
 class ShelfCreate(BaseModel):
     shelf_id: str = Field(min_length=1, max_length=40)
+    row: str = Field(min_length=1, max_length=10)
+    position: int = Field(ge=1)
+    height: int = Field(ge=1)
     label: str | None = None
 
 
 class ShelfUpdate(BaseModel):
-    shelf_id: str | None = Field(default=None, min_length=1, max_length=40)
     label: str | None = None
 
 
@@ -54,6 +56,9 @@ class ShelfPublic(BaseModel):
 
     id: int
     shelf_id: str
+    row: str
+    position: int
+    height: int
     label: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -111,17 +116,11 @@ class BookPublic(BaseModel):
 
 class CopyCreate(BaseModel):
     shelf_id: int
-    row: str = Field(min_length=1, max_length=10)
-    position: int = Field(ge=1)
-    height: int = Field(ge=1)
     notes: str | None = None
 
 
 class CopyUpdate(BaseModel):
     shelf_id: int | None = None
-    row: str | None = None
-    position: int | None = None
-    height: int | None = None
     notes: str | None = None
 
 
@@ -131,9 +130,6 @@ class CopyPublic(BaseModel):
     id: int
     book_id: int
     shelf_id: int
-    row: str
-    position: int
-    height: int
     scan_id: UUID | None = None
     notes: str | None = None
     created_at: datetime | None = None
@@ -216,9 +212,10 @@ class ShelfQRCodePayload(BaseModel):
 
 
 class ShelfQRCodeSheetRequest(BaseModel):
+    shelf_id: str = Field(min_length=1)
     rows: list[str] = Field(min_length=1)
     positions: list[int] = Field(min_length=1)
-    height: int = Field(ge=1)
+    heights: list[int] = Field(min_length=1)
 
 
 # ── Pagination ────────────────────────────────────────────
