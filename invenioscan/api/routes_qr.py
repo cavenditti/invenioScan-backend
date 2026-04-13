@@ -42,15 +42,16 @@ async def create_shelf_sheet(
     for row in payload.rows:
         for position in payload.positions:
             for height in payload.heights:
+                shelf_id = build_shelf_label(row, position, height)
                 labels.append(
                     (
                         ShelfPosition(
-                            shelf_id=payload.shelf_id,
+                            shelf_id=shelf_id,
                             row=row,
                             position=position,
                             height=height,
                         ),
-                        build_shelf_label(row, position, height),
+                        shelf_id,
                     )
                 )
 

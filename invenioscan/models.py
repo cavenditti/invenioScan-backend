@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
+from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, JSON, Column, Relationship, SQLModel
 
 
@@ -27,8 +28,13 @@ class User(SQLModel, table=True):
 
 
 class Shelf(SQLModel, table=True):
+    __table_args__ = (
+        UniqueConstraint("shelf_id", name="uq_shelf_shelf_id"),
+        UniqueConstraint("row", "position", "height", name="uq_shelf_row_position_height"),
+    )
+
     id: int | None = Field(default=None, primary_key=True)
-    shelf_id: str = Field(index=True, max_length=40)
+    shelf_id: str = Field(max_length=40)
     label: str | None = Field(default=None, max_length=200)
     row: str = Field(max_length=10)
     position: int

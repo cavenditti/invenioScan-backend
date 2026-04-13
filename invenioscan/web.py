@@ -526,27 +526,40 @@ async def shelf_create_submit(
     if not user:
         return RedirectResponse("/login", status_code=302)
 
-    existing = (await session.exec(
-        select(Shelf).where(
-            Shelf.shelf_id == shelf_id.strip(),
-            Shelf.row == row.strip(),
-            Shelf.position == position,
-            Shelf.height == height,
-        )
-    )).first()
-    if existing:
+    form_shelf = {
+        "shelf_id": shelf_id.strip(),
+        "row": row.strip(),
+        "position": position,
+        "height": height,
+        "label": label.strip() or None,
+    }
+
+    existing_shelf_id = (await session.exec(select(Shelf).where(Shelf.shelf_id == form_shelf["shelf_id"]))).first()
+    if existing_shelf_id:
         return tpl.TemplateResponse(request, "shelf_form.html", {
-            "user": user, "shelf": None,
-            "error": f"A shelf with ID '{shelf_id.strip()}', row '{row.strip()}', position {position}, height {height} already exists.",
+            "user": user,
+            "shelf": form_shelf,
+            "error": f"A shelf with ID '{form_shelf['shelf_id']}' already exists.",
         })
 
-    shelf = Shelf(
-        shelf_id=shelf_id.strip(),
-        row=row.strip(),
-        position=position,
-        height=height,
-        label=label.strip() or None,
-    )
+    existing_coordinates = (await session.exec(
+        select(Shelf).where(
+            Shelf.row == form_shelf["row"],
+            Shelf.position == form_shelf["position"],
+            Shelf.height == form_shelf["height"],
+        )
+    )).first()
+    if existing_coordinates:
+        return tpl.TemplateResponse(request, "shelf_form.html", {
+            "user": user,
+            "shelf": form_shelf,
+            "error": (
+                f"A shelf at row '{form_shelf['row']}', position {form_shelf['position']}, "
+                f"height {form_shelf['height']} already exists."
+            ),
+        })
+
+    shelf = Shelf(**form_shelf)
     session.add(shelf)
     await session.commit()
     await session.refresh(shelf)
@@ -603,6 +616,9 @@ async def shelf_edit_submit(
     shelf_db_id: int,
     settings: Annotated[Settings, Depends(get_settings)],
     session: Annotated[AsyncSession, Depends(get_session)],
+    row: Annotated[str, Form()],
+    position: Annotated[int, Form()],
+    height: Annotated[int, Form()],
     label: Annotated[str, Form()] = "",
 ):
     tpl = _templates(request)
@@ -613,7 +629,37 @@ async def shelf_edit_submit(
     if not shelf:
         return RedirectResponse("/shelves", status_code=302)
 
-    shelf.label = label.strip() or None
+    form_shelf = {
+        "id": shelf.id,
+        "shelf_id": shelf.shelf_id,
+        "row": row.strip(),
+        "position": position,
+        "height": height,
+        "label": label.strip() or None,
+    }
+
+    existing_coordinates = (await session.exec(
+        select(Shelf).where(
+            Shelf.id != shelf_db_id,
+            Shelf.row == form_shelf["row"],
+            Shelf.position == form_shelf["position"],
+            Shelf.height == form_shelf["height"],
+        )
+    )).first()
+    if existing_coordinates:
+        return tpl.TemplateResponse(request, "shelf_form.html", {
+            "user": user,
+            "shelf": form_shelf,
+            "error": (
+                f"A shelf at row '{form_shelf['row']}', position {form_shelf['position']}, "
+                f"height {form_shelf['height']} already exists."
+            ),
+        })
+
+    shelf.row = form_shelf["row"]
+    shelf.position = form_shelf["position"]
+    shelf.height = form_shelf["height"]
+    shelf.label = form_shelf["label"]
     shelf.updated_at = datetime.now(UTC)
     session.add(shelf)
     await session.commit()
@@ -676,23 +722,35 @@ async def qr_generate(
     for row in [r.strip() for r in rows.split(",") if r.strip()]:
         for pos in range(pos_from, pos_to + 1):
             for h in range(height_from, height_to + 1):
-                sid = build_shelf_label(row, pos, h)
-                # Find or create shelf
+                coord_label = build_shelf_label(row, pos, h)
                 existing = (await session.exec(
                     select(Shelf).where(
-                        Shelf.shelf_id == sid,
                         Shelf.row == row,
                         Shelf.position == pos,
                         Shelf.height == h,
                     )
                 )).first()
                 if not existing:
-                    existing = Shelf(shelf_id=sid, row=row, position=pos, height=h)
+                    existing_shelf_id = (await session.exec(select(Shelf).where(Shelf.shelf_id == coord_label))).first()
+                    if existing_shelf_id:
+                        return HTMLResponse(
+                            content=(
+                                f"<p>Cannot generate a QR code for {coord_label}: "
+                                "that generated shelf ID is already assigned to different coordinates.</p>"
+                            ),
+                            status_code=409,
+                        )
+
+                    existing = Shelf(shelf_id=coord_label, row=row, position=pos, height=h)
                     session.add(existing)
                     await session.flush()
 
-                sp = ShelfPosition(shelf_id=sid, row=row, position=pos, height=h)
-                labels.append((sp, sid))
+                label_text = existing.shelf_id
+                if existing.shelf_id != coord_label:
+                    label_text = f"{existing.shelf_id} · {coord_label}"
+
+                sp = ShelfPosition(shelf_id=existing.shelf_id, row=row, position=pos, height=h)
+                labels.append((sp, label_text))
 
     await session.commit()
     html = render_printable_qr_sheet(labels, settings)

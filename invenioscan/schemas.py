@@ -40,6 +40,8 @@ class ShelfPosition(BaseModel):
 
 
 class ShelfCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     shelf_id: str = Field(min_length=1, max_length=40)
     row: str = Field(min_length=1, max_length=10)
     position: int = Field(ge=1)
@@ -48,6 +50,11 @@ class ShelfCreate(BaseModel):
 
 
 class ShelfUpdate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    row: str | None = Field(default=None, min_length=1, max_length=10)
+    position: int | None = Field(default=None, ge=1)
+    height: int | None = Field(default=None, ge=1)
     label: str | None = None
 
 
@@ -212,7 +219,6 @@ class ShelfQRCodePayload(BaseModel):
 
 
 class ShelfQRCodeSheetRequest(BaseModel):
-    shelf_id: str = Field(min_length=1)
     rows: list[str] = Field(min_length=1)
     positions: list[int] = Field(min_length=1)
     heights: list[int] = Field(min_length=1)

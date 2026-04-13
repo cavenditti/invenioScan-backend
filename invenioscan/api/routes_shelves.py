@@ -18,7 +18,7 @@ async def list_shelves(
     _user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> list[Shelf]:
-    result = await session.exec(select(Shelf).order_by(Shelf.shelf_id))
+    result = await session.exec(select(Shelf).order_by(Shelf.shelf_id, Shelf.row, Shelf.position, Shelf.height))
     return list(result.all())
 
 
@@ -40,16 +40,20 @@ async def create_shelf(
     _user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Shelf:
-    existing = await session.exec(
+    existing_shelf_id = await session.exec(select(Shelf).where(Shelf.shelf_id == payload.shelf_id))
+    if existing_shelf_id.first():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Shelf ID already exists")
+
+    existing_coordinates = await session.exec(
         select(Shelf).where(
-            Shelf.shelf_id == payload.shelf_id,
             Shelf.row == payload.row,
             Shelf.position == payload.position,
             Shelf.height == payload.height,
         )
     )
-    if existing.first():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Shelf already exists")
+    if existing_coordinates.first():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Shelf coordinates already exist")
+
     shelf = Shelf(**payload.model_dump())
     session.add(shelf)
     await session.commit()
@@ -67,6 +71,22 @@ async def update_shelf(
     shelf = await session.get(Shelf, shelf_db_id)
     if not shelf:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shelf not found")
+
+    new_row = payload.row if payload.row is not None else shelf.row
+    new_position = payload.position if payload.position is not None else shelf.position
+    new_height = payload.height if payload.height is not None else shelf.height
+
+    existing_coordinates = await session.exec(
+        select(Shelf).where(
+            Shelf.id != shelf_db_id,
+            Shelf.row == new_row,
+            Shelf.position == new_position,
+            Shelf.height == new_height,
+        )
+    )
+    if existing_coordinates.first():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Shelf coordinates already exist")
+
     update_data = payload.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(shelf, key, value)

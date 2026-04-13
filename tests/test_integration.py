@@ -203,17 +203,39 @@ async def test_shelves_crud(client: AsyncClient):
     assert shelf["position"] == 1
     assert shelf["height"] == 2
 
-    # Duplicate (same shelf_id + row + position + height) fails
+    # Duplicate shelf ID fails
     resp = await client.post("/api/v1/shelves", json={
-        "shelf_id": "A1", "row": "A", "position": 1, "height": 2,
+        "shelf_id": "A1", "row": "B", "position": 2, "height": 3,
     }, headers=headers)
     assert resp.status_code == 409
 
-    # Same shelf_id but different coordinates succeeds
+    # Duplicate coordinates fail even with a different shelf ID
     resp = await client.post("/api/v1/shelves", json={
-        "shelf_id": "A1", "row": "A", "position": 1, "height": 3,
+        "shelf_id": "A2", "row": "A", "position": 1, "height": 2,
+    }, headers=headers)
+    assert resp.status_code == 409
+
+    # A distinct shelf succeeds
+    resp = await client.post("/api/v1/shelves", json={
+        "shelf_id": "A2", "row": "B", "position": 2, "height": 3,
     }, headers=headers)
     assert resp.status_code == 201
+
+    # Updating coordinates works when the target coordinates are free
+    resp = await client.put(f"/api/v1/shelves/{shelf['id']}", json={
+        "row": "C", "position": 4, "height": 1, "label": "Updated shelf",
+    }, headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["row"] == "C"
+    assert resp.json()["position"] == 4
+    assert resp.json()["height"] == 1
+    assert resp.json()["label"] == "Updated shelf"
+
+    # Updating into occupied coordinates fails
+    resp = await client.put(f"/api/v1/shelves/{shelf['id']}", json={
+        "row": "B", "position": 2, "height": 3,
+    }, headers=headers)
+    assert resp.status_code == 409
 
     # List
     resp = await client.get("/api/v1/shelves", headers=headers)
@@ -247,7 +269,7 @@ async def test_ingest_isbn(client: AsyncClient):
 
     # Second ingest with same ISBN reuses the book
     resp = await client.post("/api/v1/ingest", json={
-        "shelf": {"shelf_id": "B2", "row": "2", "position": 1, "height": 2},
+        "shelf": {"shelf_id": "C1", "row": "2", "position": 1, "height": 2},
         "source_type": "isbn",
         "isbn": "9780140449136",
     }, headers=headers)
@@ -270,7 +292,7 @@ async def test_copies_crud(client: AsyncClient):
 
     # Create another shelf for move test
     shelf2_resp = await client.post("/api/v1/shelves", json={
-        "shelf_id": "X1", "row": "B", "position": 2, "height": 1,
+        "shelf_id": "X2", "row": "B", "position": 2, "height": 1,
     }, headers=headers)
     shelf2_id = shelf2_resp.json()["id"]
 
@@ -292,6 +314,35 @@ async def test_copies_crud(client: AsyncClient):
     # Delete copy
     resp = await client.delete(f"/api/v1/copies/{copy_id}", headers=headers)
     assert resp.status_code == 204
+
+
+async def test_web_shelf_edit_form_updates_coordinates(client: AsyncClient):
+    token = await _register_and_login(client, username="webuser", email="webuser@test.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    shelf_resp = await client.post("/api/v1/shelves", json={
+        "shelf_id": "WEB1", "row": "A", "position": 1, "height": 1,
+    }, headers=headers)
+    assert shelf_resp.status_code == 201
+    shelf_id = shelf_resp.json()["id"]
+
+    login_resp = await client.post("/login", data={
+        "username": "webuser", "password": "testpass123",
+    }, follow_redirects=False)
+    assert login_resp.status_code == 302
+
+    resp = await client.post(f"/shelves/{shelf_id}/edit", data={
+        "row": "B", "position": "3", "height": "2", "label": "Web updated",
+    }, follow_redirects=False)
+    assert resp.status_code == 302
+
+    updated_resp = await client.get(f"/api/v1/shelves/{shelf_id}", headers=headers)
+    assert updated_resp.status_code == 200
+    updated = updated_resp.json()
+    assert updated["row"] == "B"
+    assert updated["position"] == 3
+    assert updated["height"] == 2
+    assert updated["label"] == "Web updated"
 
 
 async def test_admin_required_for_delete(client: AsyncClient):

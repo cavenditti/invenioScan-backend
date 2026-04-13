@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -64,10 +64,10 @@ async def _perform_ingest(
     session: AsyncSession,
     settings: Settings,
 ) -> IngestResponse:
-    # Find or create shelf
+    # Coordinates identify the shelf. Reuse an existing shelf at the same coordinates
+    # even if its human-facing shelf_id differs.
     result = await session.exec(
         select(Shelf).where(
-            Shelf.shelf_id == payload.shelf.shelf_id,
             Shelf.row == payload.shelf.row,
             Shelf.position == payload.shelf.position,
             Shelf.height == payload.shelf.height,
@@ -75,6 +75,13 @@ async def _perform_ingest(
     )
     shelf = result.first()
     if not shelf:
+        conflict = await session.exec(select(Shelf).where(Shelf.shelf_id == payload.shelf.shelf_id))
+        if conflict.first():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Shelf ID already exists with different coordinates",
+            )
+
         shelf = Shelf(
             shelf_id=payload.shelf.shelf_id,
             row=payload.shelf.row,

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{{ "Edit" if shelf else "Add" }} Shelf — Shelfscan{% endblock %}
+{% block title %}{{ "Edit" if shelf and shelf.id else "Add" }} Shelf — Shelfscan{% endblock %}
 {% block content %}
 <div class="page-header">
   <hgroup>
-    <p class="kicker">{{ "Edit" if shelf else "New" }} Shelf</p>
-    <h1 class="mt-0">{{ shelf.shelf_id if shelf else "Add a shelf" }}</h1>
+    <p class="kicker">{{ "Edit" if shelf and shelf.id else "New" }} Shelf</p>
+    <h1 class="mt-0">{{ shelf.shelf_id if shelf and shelf.id else "Add a shelf" }}</h1>
   </hgroup>
 </div>
 
@@ -15,41 +15,24 @@
 <div class="card form-card-medium">
   <form method="post">
     <label>
-      Shelf ID <small>(required, e.g. S001, A-B-3)</small>
-      <input type="text" name="shelf_id" value="{{ shelf.shelf_id if shelf else '' }}" required maxlength="40" {{ "readonly" if shelf else "" }}>
+      Shelf ID <small>(required, stable identifier)</small>
+      <input type="text" name="shelf_id" value="{{ shelf.shelf_id if shelf else '' }}" required maxlength="40" {{ "readonly" if shelf and shelf.id else "" }}>
     </label>
 
-    {% if not shelf %}
     <div class="grid">
       <label>
         Row <small>(required, e.g. A)</small>
-        <input type="text" name="row" value="" required maxlength="10">
+        <input type="text" name="row" value="{{ shelf.row if shelf else '' }}" required maxlength="10">
       </label>
       <label>
         Position <small>(required)</small>
-        <input type="number" name="position" value="1" min="1" required>
+        <input type="number" name="position" value="{{ shelf.position if shelf else 1 }}" min="1" required>
       </label>
       <label>
         Height <small>(required)</small>
-        <input type="number" name="height" value="1" min="1" required>
+        <input type="number" name="height" value="{{ shelf.height if shelf else 1 }}" min="1" required>
       </label>
     </div>
-    {% else %}
-    <div class="grid">
-      <label>
-        Row
-        <input type="text" value="{{ shelf.row }}" readonly>
-      </label>
-      <label>
-        Position
-        <input type="number" value="{{ shelf.position }}" readonly>
-      </label>
-      <label>
-        Height
-        <input type="number" value="{{ shelf.height }}" readonly>
-      </label>
-    </div>
-    {% endif %}
 
     <label>
       Label <small>(optional description)</small>
@@ -57,8 +40,8 @@
     </label>
 
     <div class="gap-row mt-1">
-      <button type="submit" class="btn-pill btn-pill-primary">{{ "Save Changes" if shelf else "Create Shelf" }}</button>
-      {% if shelf %}
+      <button type="submit" class="btn-pill btn-pill-primary">{{ "Save Changes" if shelf and shelf.id else "Create Shelf" }}</button>
+      {% if shelf and shelf.id %}
       <a href="/shelves/{{ shelf.id }}" class="btn-pill btn-pill-outline">Cancel</a>
       {% else %}
       <a href="/shelves" class="btn-pill btn-pill-outline">Cancel</a>
