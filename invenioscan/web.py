@@ -7,7 +7,7 @@ from typing import Annotated
 import jwt as pyjwt
 from fastapi import APIRouter, Cookie, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlmodel import func, select
+from sqlmodel import delete, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from invenioscan.auth import create_access_token, hash_password, verify_password
@@ -112,7 +112,14 @@ async def login_submit(
 
     token, _ = create_access_token(user.id, user.username, user.is_admin, settings)
     response = RedirectResponse("/", status_code=302)
-    response.set_cookie("access_token", token, httponly=True, samesite="lax", max_age=settings.jwt_access_token_exp_minutes * 60)
+    response.set_cookie(
+        "access_token",
+        token,
+        httponly=True,
+        samesite="lax",
+        secure=settings.cookie_secure,
+        max_age=settings.jwt_access_token_exp_minutes * 60,
+    )
     return response
 
 
@@ -227,7 +234,12 @@ async def book_create_submit(
                 "user": user, "book": None, "error": "Extra metadata must be a valid JSON object.",
             })
 
-    pub_year = int(publication_year) if publication_year.strip() else None
+    try:
+        pub_year = int(publication_year.strip()) if publication_year.strip() else None
+    except ValueError:
+        return tpl.TemplateResponse(request, "book_form.html", {
+            "user": user, "book": None, "error": "Publication year must be a number.",
+        })
 
     book = Book(
         title=title.strip(),
@@ -264,10 +276,12 @@ async def book_detail_page(
         return RedirectResponse("/books", status_code=302)
 
     copies = list((await session.exec(select(BookCopy).where(BookCopy.book_id == book_id))).all())
-    shelves = {}
-    for c in copies:
-        if c.shelf_id not in shelves:
-            shelves[c.shelf_id] = await session.get(Shelf, c.shelf_id)
+    shelf_ids = {c.shelf_id for c in copies}
+    if shelf_ids:
+        result = await session.exec(select(Shelf).where(Shelf.id.in_(shelf_ids)))
+        shelves = {s.id: s for s in result.all()}
+    else:
+        shelves = {}
 
     all_shelves = list((await session.exec(select(Shelf).order_by(Shelf.shelf_id))).all())
 
@@ -332,7 +346,12 @@ async def book_edit_submit(
     book.title = title.strip()
     book.author = author.strip() or None
     book.isbn = isbn.strip() or None
-    book.publication_year = int(publication_year) if publication_year.strip() else None
+    try:
+        book.publication_year = int(publication_year.strip()) if publication_year.strip() else None
+    except ValueError:
+        return tpl.TemplateResponse(request, "book_form.html", {
+            "user": user, "book": book, "error": "Publication year must be a number.",
+        })
     book.document_type = document_type
     book.language = language.strip() or None
     book.cover_image_url = cover_image_url.strip() or None
@@ -398,9 +417,7 @@ async def book_delete(
         return RedirectResponse("/login", status_code=302)
     book = await session.get(Book, book_id)
     if book:
-        copies = list((await session.exec(select(BookCopy).where(BookCopy.book_id == book_id))).all())
-        for c in copies:
-            await session.delete(c)
+        await session.exec(delete(BookCopy).where(BookCopy.book_id == book_id))
         await session.delete(book)
         await session.commit()
     return RedirectResponse("/books", status_code=302)
