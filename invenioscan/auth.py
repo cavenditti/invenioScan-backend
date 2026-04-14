@@ -22,7 +22,7 @@ def create_access_token(user_id: int, username: str, is_admin: bool, settings: S
         "sub": str(user_id),
         "username": username,
         "admin": is_admin,
-        "exp": expires_at,
+        "exp": int(expires_at.timestamp()),
     }
     token = jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
     return token, int(expires_delta.total_seconds())
