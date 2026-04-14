@@ -1,8 +1,12 @@
+import logging
+import secrets
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -15,7 +19,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./invenioscan.db"
 
     # JWT
-    jwt_secret_key: str = Field(min_length=32)
+    jwt_secret_key: str | None = None
     jwt_algorithm: str = "HS256"
     jwt_access_token_exp_minutes: int = 60
 
@@ -25,12 +29,20 @@ class Settings(BaseSettings):
     bootstrap_admin_password: str | None = None
     bootstrap_admin_email: str = "admin@localhost"
 
-    @field_validator("jwt_secret_key")
-    @classmethod
-    def _require_strong_secret(cls, v: str) -> str:
-        if v.lower() in ("change-me", "secret", "changeme", "password"):
+    @model_validator(mode="after")
+    def _fill_jwt_secret(self) -> "Settings":
+        if self.jwt_secret_key is None:
+            self.jwt_secret_key = secrets.token_hex(32)
+            logger.warning(
+                "INVSCAN_JWT_SECRET_KEY is not set — using an ephemeral secret. "
+                "All sessions will be invalidated on restart. "
+                "Set INVSCAN_JWT_SECRET_KEY to a stable 32+ character value in production."
+            )
+        elif self.jwt_secret_key.lower() in ("change-me", "secret", "changeme", "password"):
             raise ValueError("jwt_secret_key must not be a well-known placeholder value")
-        return v
+        elif len(self.jwt_secret_key) < 32:
+            raise ValueError("jwt_secret_key must be at least 32 characters long")
+        return self
 
     # Registration
     registration_expiry_days: int = 7
