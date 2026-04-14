@@ -4,6 +4,8 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, JSON, Column, Relationship, SQLModel
+from sqlalchemy import Integer, ForeignKey as SAForeignKey
+from sqlmodel import Column as SMColumn
 
 
 class UserStatus(str, Enum):
@@ -66,8 +68,12 @@ class Book(SQLModel, table=True):
 
 class BookCopy(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    book_id: int = Field(foreign_key="book.id", index=True)
-    shelf_id: int = Field(foreign_key="shelf.id", index=True)
+    book_id: int = Field(
+        sa_column=SMColumn(Integer, SAForeignKey("book.id", ondelete="CASCADE"), index=True, nullable=False)
+    )
+    shelf_id: int = Field(
+        sa_column=SMColumn(Integer, SAForeignKey("shelf.id", ondelete="RESTRICT"), index=True, nullable=False)
+    )
     scan_id: UUID = Field(default_factory=uuid4)
     notes: str | None = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
