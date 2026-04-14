@@ -1,3 +1,5 @@
+import logging
+import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -15,6 +17,8 @@ from invenioscan.database import create_db_and_tables
 from invenioscan.models import User, UserStatus
 from invenioscan.settings import get_settings
 
+logger = logging.getLogger(__name__)
+
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
@@ -26,10 +30,21 @@ async def _ensure_bootstrap_admin() -> None:
         result = await session.exec(select(User).where(User.is_admin == True))
         if result.first():
             return
+        password = settings.bootstrap_admin_password
+        if not password:
+            password = secrets.token_urlsafe(16)
+            logger.warning(
+                "Bootstrap admin created with generated password — "
+                "set INVSCAN_BOOTSTRAP_ADMIN_PASSWORD to suppress this.\n"
+                "  Username : %s\n"
+                "  Password : %s",
+                settings.bootstrap_admin_username,
+                password,
+            )
         admin = User(
             username=settings.bootstrap_admin_username,
             email=settings.bootstrap_admin_email,
-            hashed_password=hash_password(settings.bootstrap_admin_password),
+            hashed_password=hash_password(password),
             is_admin=True,
             is_active=True,
             status=UserStatus.APPROVED,
@@ -53,13 +68,13 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.cors_allowed_origins,
         allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Accept"],
     )
 
     upload_dir = Path(settings.upload_dir)
     upload_dir.mkdir(parents=True, exist_ok=True)
-    application.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
+    # /uploads is served by an authenticated route in routes_uploads.py, not as raw StaticFiles
 
     # Serve static assets (CSS/JS) if they exist
     static_dir = Path(__file__).parent / "static"
@@ -68,6 +83,10 @@ def create_app() -> FastAPI:
 
     # API routes
     application.include_router(build_api_router(), prefix=settings.api_prefix)
+
+    # Authenticated uploads route (must be before web UI catch-all)
+    from invenioscan.api.routes_uploads import router as uploads_router
+    application.include_router(uploads_router)
 
     # Web UI routes (must be after API)
     from invenioscan.web import router as web_router

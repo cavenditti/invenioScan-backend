@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,14 +15,22 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./invenioscan.db"
 
     # JWT
-    jwt_secret_key: str = Field(default="change-me", min_length=8)
+    jwt_secret_key: str = Field(min_length=32)
     jwt_algorithm: str = "HS256"
     jwt_access_token_exp_minutes: int = 60
 
     # Bootstrap admin (auto-created on first startup)
+    # If bootstrap_admin_password is not set, a random password is generated and printed to stdout.
     bootstrap_admin_username: str = "admin"
-    bootstrap_admin_password: str = "admin"
+    bootstrap_admin_password: str | None = None
     bootstrap_admin_email: str = "admin@localhost"
+
+    @field_validator("jwt_secret_key")
+    @classmethod
+    def _require_strong_secret(cls, v: str) -> str:
+        if v.lower() in ("change-me", "secret", "changeme", "password"):
+            raise ValueError("jwt_secret_key must not be a well-known placeholder value")
+        return v
 
     # Registration
     registration_expiry_days: int = 7
@@ -30,6 +38,9 @@ class Settings(BaseSettings):
     # Uploads
     public_base_url: str | None = None
     upload_dir: Path = Path("uploads")
+
+    # Security
+    cookie_secure: bool = True  # Set to False only in local dev/test (HTTP)
 
     # Frontend development
     cors_allowed_origins: list[str] = Field(
