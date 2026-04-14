@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel import func, select
+from sqlmodel import delete, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from invenioscan.database import get_session
@@ -21,7 +21,7 @@ async def list_books(
     session: Annotated[AsyncSession, Depends(get_session)],
     q: str | None = Query(default=None, description="Search title, author, or ISBN"),
     page: int = Query(default=1, ge=1),
-    per_page: int = Query(default=50, ge=1, le=200),
+    per_page: int = Query(default=50, ge=1, le=100),
 ) -> list[Book]:
     stmt = select(Book)
     if q:
@@ -101,7 +101,7 @@ async def enrich_book(
     lookup = await lookup_isbn(book.isbn, settings)
     if not lookup:
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="ISBN lookup returned no results. The external service may be unavailable.",
         )
 
@@ -151,9 +151,7 @@ async def delete_book(
     book = await session.get(Book, book_id)
     if not book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
-    # Delete associated copies first
-    result = await session.exec(select(BookCopy).where(BookCopy.book_id == book_id))
-    for copy in result.all():
-        await session.delete(copy)
+    # Bulk-delete associated copies in a single statement
+    await session.exec(delete(BookCopy).where(BookCopy.book_id == book_id))
     await session.delete(book)
     await session.commit()
