@@ -92,7 +92,7 @@ def settings():
     return Settings(
         isbn_lookup_enabled=True,
         isbn_lookup_timeout_seconds=2.0,
-        jwt_secret_key="test-secret-key",
+        jwt_secret_key="test-secret-key-for-isbn-lookup-tests",
     )
 
 
@@ -100,7 +100,7 @@ def settings():
 def disabled_settings():
     return Settings(
         isbn_lookup_enabled=False,
-        jwt_secret_key="test-secret-key",
+        jwt_secret_key="test-secret-key-for-isbn-lookup-tests",
     )
 
 

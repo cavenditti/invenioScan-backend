@@ -561,7 +561,7 @@ async def test_enrich_book_lookup_failure_returns_502(client: AsyncClient, monke
     book_id = book_resp.json()["id"]
 
     resp = await client.post(f"/api/v1/books/{book_id}/enrich", headers=headers)
-    assert resp.status_code == 502
+    assert resp.status_code == 503
 
 
 async def test_enrich_book_not_found_returns_404(client: AsyncClient):
