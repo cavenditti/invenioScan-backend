@@ -17,6 +17,7 @@ dependencies = [
 	"uvicorn[standard]>=0.34.0",
 	"greenlet>=3.3.2",
 	"httpx>=0.28",
+	"alembic>=1.15",
 ]
 
 [project.optional-dependencies]

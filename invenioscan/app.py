@@ -55,6 +55,8 @@ async def _ensure_bootstrap_admin() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # create_db_and_tables() is kept for local dev and tests where Alembic
+    # hasn't run.  In production the entrypoint runs `alembic upgrade head`.
     await create_db_and_tables()
     await _ensure_bootstrap_admin()
     yield
