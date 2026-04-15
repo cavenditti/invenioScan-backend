@@ -21,6 +21,7 @@
       <li><a href="/books"><i class="icon-book-open"></i> Books</a></li>
       <li><a href="/shelves"><i class="icon-archive"></i> Shelves</a></li>
       <li><a href="/qr"><i class="icon-qr-code"></i> QR</a></li>
+      <li><a href="{{ scanner_url }}"><i class="icon-scan-line"></i> Scan</a></li>
       {% if user.is_admin %}<li><a href="/admin/users"><i class="icon-users"></i> Users</a></li>{% endif %}
       <li><a href="/logout"><i class="icon-log-out"></i> {{ user.username }}</a></li>
     </ul>
