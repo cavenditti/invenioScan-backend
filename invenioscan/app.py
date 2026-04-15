@@ -83,6 +83,18 @@ def create_app() -> FastAPI:
     if static_dir.is_dir():
         application.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+    # Serve the compiled scanner (Expo web) app when built into the image
+    scan_app_dir = Path(__file__).parent / "static" / "scan-app"
+    if scan_app_dir.is_dir():
+        application.mount(
+            settings.scanner_url,
+            StaticFiles(directory=scan_app_dir, html=True),
+            name="scan-app",
+        )
+
+    # Make scanner_url available in all Jinja2 templates
+    templates.env.globals["scanner_url"] = settings.scanner_url
+
     # API routes
     application.include_router(build_api_router(), prefix=settings.api_prefix)
 

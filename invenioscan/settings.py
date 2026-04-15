@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     public_base_url: str | None = None
     upload_dir: Path = Path("uploads")
 
+    # Scanner sub-path (where the Expo web app is served)
+    scanner_url: str = "/scan"
+
     # Security
     cookie_secure: bool = True  # Set to False only in local dev/test (HTTP)
 
