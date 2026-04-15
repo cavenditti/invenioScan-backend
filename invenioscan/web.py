@@ -12,6 +12,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from invenioscan.auth import create_access_token, hash_password, verify_password
 from invenioscan.database import get_session
+from invenioscan.email import notify_admin_new_registration
 from invenioscan.isbn_lookup import lookup_isbn
 from invenioscan.models import Book, BookCopy, Shelf, User, UserStatus
 from invenioscan.qr import build_shelf_label, build_shelf_payload, generate_qr_svg, render_printable_qr_sheet
@@ -135,6 +136,7 @@ async def register_submit(
     username: Annotated[str, Form()],
     email: Annotated[str, Form()],
     password: Annotated[str, Form()],
+    settings: Annotated[Settings, Depends(get_settings)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
     tpl = _templates(request)
@@ -147,6 +149,7 @@ async def register_submit(
     user = User(username=username, email=email, hashed_password=hash_password(password))
     session.add(user)
     await session.commit()
+    await notify_admin_new_registration(settings, username, email)
     return tpl.TemplateResponse(request, "register.html", {
         "error": None,
         "success": "Registration submitted! An admin must approve your account before you can log in.",

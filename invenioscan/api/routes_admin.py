@@ -7,8 +7,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from invenioscan.database import get_session
 from invenioscan.dependencies import require_admin
+from invenioscan.email import notify_user_approved, notify_user_denied
 from invenioscan.models import User, UserStatus
 from invenioscan.schemas import UserPublic
+from invenioscan.settings import Settings, get_settings
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -32,6 +34,7 @@ async def approve_user(
     user_id: int,
     admin: Annotated[User, Depends(require_admin)],
     session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> User:
     user = await session.get(User, user_id)
     if not user:
@@ -42,6 +45,7 @@ async def approve_user(
     session.add(user)
     await session.commit()
     await session.refresh(user)
+    await notify_user_approved(settings, user.email, user.username)
     return user
 
 
@@ -50,6 +54,7 @@ async def deny_user(
     user_id: int,
     _admin: Annotated[User, Depends(require_admin)],
     session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> User:
     user = await session.get(User, user_id)
     if not user:
@@ -59,4 +64,5 @@ async def deny_user(
     session.add(user)
     await session.commit()
     await session.refresh(user)
+    await notify_user_denied(settings, user.email, user.username)
     return user

@@ -74,6 +74,15 @@ class Settings(BaseSettings):
     isbn_lookup_enabled: bool = True
     isbn_lookup_timeout_seconds: float = 5.0
 
+    # Email / SMTP (all optional – no-op when smtp_host is None)
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_use_tls: bool = True
+    email_from: str = "shelfscan@localhost"
+    admin_notification_email: str | None = None
+
 
 @lru_cache
 def get_settings() -> Settings:

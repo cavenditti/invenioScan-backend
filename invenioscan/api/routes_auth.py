@@ -9,6 +9,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from invenioscan.auth import create_access_token, hash_password, verify_password
 from invenioscan.database import get_session
 from invenioscan.dependencies import get_current_user
+from invenioscan.email import notify_admin_new_registration
 from invenioscan.models import User, UserStatus
 from invenioscan.schemas import RegisterRequest, TokenResponse, UserPublic
 from invenioscan.settings import Settings, get_settings
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 async def register(
     payload: RegisterRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> User:
     existing = await session.exec(
         select(User).where((User.username == payload.username) | (User.email == payload.email))
@@ -34,6 +36,7 @@ async def register(
     session.add(user)
     await session.commit()
     await session.refresh(user)
+    await notify_admin_new_registration(settings, user.username, user.email)
     return user
 
 

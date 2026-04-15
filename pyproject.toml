@@ -18,6 +18,7 @@ dependencies = [
 	"greenlet>=3.3.2",
 	"httpx>=0.28",
 	"alembic>=1.15",
+	"aiosmtplib>=2.0",
 ]
 
 [project.optional-dependencies]
